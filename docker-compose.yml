@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    ports:
+      - "9001:9001"   # Web Console
+    networks:
+      - reels_network
+
+  reels_publisher:
+    build: .
+    container_name: reels_publisher
+    restart: unless-stopped
+    depends_on:
+      - minio
+    environment:
+      INSTAGRAM_ACCESS_TOKEN: ${INSTAGRAM_ACCESS_TOKEN}
+      INSTAGRAM_IG_USER_ID: ${INSTAGRAM_IG_USER_ID}
+
+      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
+      STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      STORAGE_BUCKET: reels
+    networks:
+      - reels_network
+
+volumes:
+  minio_data:
+
+networks:
+  reels_network:
+    driver: bridge
