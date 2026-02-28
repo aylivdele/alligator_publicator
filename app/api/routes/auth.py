@@ -23,7 +23,7 @@ def create_auth_routes(graph_api: InstagramGraphApiClient):
             f"https://www.instagram.com/oauth/authorize"
             f"?client_id={settings.CLIENT_ID}"
             f"&redirect_uri={settings.REDIRECT_URI}"
-            f"&scope=instagram_business_basic,instagram_business_content_publish"
+            f"&scope=instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights"
             f"&response_type=code"
             f"&state={state}"
         )

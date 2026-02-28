@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from typing import Tuple
 
 import httpx
@@ -9,12 +11,13 @@ from app.domain.repositories import InstagramPublisher
 
 class InstagramGraphApiClient(InstagramPublisher):
 
-    BASE_URL = "https://graph.facebook.com/v25.0"
+    BASE_URL = "https://graph.instagram.com"
 
     def __init__(self, client_id: str, client_secret: str, redirect_uri: str):
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
+        self.logger = logging.getLogger(__name__)
 
     async def get_token(self, code):
         async with httpx.AsyncClient() as client:
@@ -37,7 +40,7 @@ class InstagramGraphApiClient(InstagramPublisher):
 
             # Шаг 2: обмен на долгоживущий токен (60 дней)
             long_resp = await client.get(
-                "https://graph.instagram.com/access_token",
+                f"{self.BASE_URL}/access_token",
                 params={
                     "grant_type": "ig_exchange_token",
                     "client_secret": self.client_secret,
@@ -50,7 +53,7 @@ class InstagramGraphApiClient(InstagramPublisher):
     async def get_account_info(self, long_token: str):
         async with httpx.AsyncClient() as client:
             me_resp = await client.get(
-                "https://graph.instagram.com/v22.0/me",
+                f"{self.BASE_URL}/me",
                 params={
                     "fields": "id,username",
                     "access_token": long_token
@@ -59,8 +62,9 @@ class InstagramGraphApiClient(InstagramPublisher):
             return me_resp.json()
           
 
-    def publish_reel(self, reel: Reel, account: InstagramAccount) -> str:
+    async def publish_reel(self, reel: Reel, account: InstagramAccount) -> str:
         creation_id = self._create_media_container(reel, account)
+        await self._wait_for_container(creation_id)
         return self._publish_media(creation_id, account)
 
     def _create_media_container(self, reel: Reel, account: InstagramAccount) -> str:
@@ -80,6 +84,27 @@ class InstagramGraphApiClient(InstagramPublisher):
         response.raise_for_status()
 
         return response.json()["id"]
+    
+    async def _wait_for_container(self, creation_id: str):
+        url = f"{self.BASE_URL}/{creation_id}"
+
+        params={
+            "fields": "status_code,status",
+            "access_token": self.access_token
+        }
+        sleep_seconds = 10
+
+        finished = False
+        while not finished:
+            response = requests.get(url, params=params)
+            response.raise_for_status()
+
+            finished = response.json()["status_code"] == "FINISHED"
+            if not finished:
+                self.logger.info(f"Waiting {sleep_seconds} seconds for container {creation_id} to upload")
+                asyncio.sleep(sleep_seconds)
+                sleep_seconds += sleep_seconds
+
 
     def _publish_media(self, creation_id: str, account: InstagramAccount) -> str:
         url = f"{self.BASE_URL}/{account.instagram_id}/media_publish"

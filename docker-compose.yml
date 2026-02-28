@@ -23,11 +23,9 @@ services:
     restart: unless-stopped
     depends_on:
       - minio
+    ports: 
+      - "8000:8000"
     environment:
-      CLIENT_ID: ${GRAPH_API_CLIENT_ID}
-      CLIENT_SECRET: ${GRAPH_API_CLIENT_SECRET}
-      REDIRECT_URI: ${GRAPH_API_REDIRECT_URI}
-
       STORAGE_ENDPOINT: http://minio:9000
       STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
       STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}

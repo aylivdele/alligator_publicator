@@ -6,7 +6,7 @@ from domain.entities import Reel, UserGroup
 class InstagramPublisher(ABC):
 
     @abstractmethod
-    def publish_reel(self, reel: Reel, account: InstagramAccount) -> str:
+    async def publish_reel(self, reel: Reel, account: InstagramAccount) -> str:
         """
         Публикует Reel.
         Возвращает ID опубликованного поста.

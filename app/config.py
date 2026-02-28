@@ -4,9 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    CLIENT_ID: str
-    CLIENT_SECRET: str
-    REDIRECT_URI: str
+    GRAPH_API_CLIENT_ID: str
+    GRAPH_API_CLIENT_SECRET: str
+    GRAPH_API_REDIRECT_URI: str
 
     STORAGE_ENDPOINT: str
     STORAGE_ACCESS_KEY: str

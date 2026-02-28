@@ -40,7 +40,7 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
       for index in range(0, len(reels)):
         reel = reels[index]
         account = accounts[index]
-        instagram_publisher.publish_reel(reel, account) 
+        await instagram_publisher.publish_reel(reel, account) 
 
 
       
