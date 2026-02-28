@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% if success %}Успешно{% else %}Ошибка{% endif %} — Alligator Publicator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Unbounded:wght@700;900&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #F7F6F2;
+    --surface: #FFFFFF;
+    --surface-2: #F0EEE9;
+    --border: #E8E5DE;
+    --accent: #5B6AF5;
+    --accent-soft: #EEEFFE;
+    --text: #18171A;
+    --text-secondary: #5C5A60;
+    --muted: #A8A5AD;
+    --success: #3DBF7C;
+    --success-soft: #EDFAF4;
+    --success-border: rgba(61, 191, 124, 0.2);
+    --error: #E84545;
+    --error-soft: #FEF0F0;
+    --error-border: rgba(232, 69, 69, 0.2);
+    --font-display: 'Unbounded', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 2px 8px rgba(0,0,0,0.06), 0 8px 32px rgba(0,0,0,0.05);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 520px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 48px;
+    box-shadow: var(--shadow);
+  }
+
+  .status-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 28px;
+    background: {% if success %}var(--success-soft){% else %}var(--error-soft){% endif %};
+    border: 1px solid {% if success %}var(--success-border){% else %}var(--error-border){% endif %};
+    color: {% if success %}var(--success){% else %}var(--error){% endif %};
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: 26px;
+    font-weight: 900;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+
+  .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 36px;
+  }
+
+  .field {
+    margin-bottom: 16px;
+  }
+
+  .field-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 7px;
+  }
+
+  .field-value {
+    font-size: 12px;
+    color: var(--text);
+    padding: 12px 14px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    word-break: break-all;
+    line-height: 1.6;
+  }
+
+  .field-value.highlight {
+    color: var(--accent);
+    background: var(--accent-soft);
+    border-color: rgba(91, 106, 245, 0.15);
+    font-size: 11px;
+  }
+
+  .field-value.error-text {
+    color: var(--error);
+    background: var(--error-soft);
+    border-color: var(--error-border);
+    font-size: 11px;
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 28px 0;
+  }
+
+  .btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 13px 24px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    text-decoration: none;
+    letter-spacing: 0.03em;
+    border-radius: var(--radius-sm);
+    transition: all 0.18s ease;
+  }
+
+  .btn-back:hover {
+    background: var(--surface);
+    border-color: var(--accent);
+    color: var(--accent);
+    box-shadow: 0 2px 8px rgba(91, 106, 245, 0.12);
+  }
+
+  .logo-link {
+    margin-top: 32px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="status-icon">
+    {% if success %}
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+    {% else %}
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+    {% endif %}
+  </div>
+
+  {% if success %}
+    <h1>Готово</h1>
+    <div class="subtitle">Аккаунт успешно подключён</div>
+
+    <div class="field">
+      <div class="field-label">Instagram аккаунт</div>
+      <div class="field-value">@{{ username }}</div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Instagram ID</div>
+      <div class="field-value">{{ instagram_id }}</div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Токен (первые 40 символов)</div>
+      <div class="field-value highlight">{{ token_preview }}</div>
+    </div>
+
+    <div class="field">
+      <div class="field-label">Срок действия</div>
+      <div class="field-value">{{ expires_days }} дней</div>
+    </div>
+
+    {% if folder_name %}
+    <div class="field">
+      <div class="field-label">Папка</div>
+      <div class="field-value" style="display:flex;align-items:center;gap:8px;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--accent);flex-shrink:0">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+        </svg>
+        {{ folder_name }}
+      </div>
+    </div>
+    {% endif %}
+
+  {% else %}
+    <h1>Ошибка</h1>
+    <div class="subtitle">Авторизация не выполнена</div>
+
+    <div class="field">
+      <div class="field-label">Описание ошибки</div>
+      <div class="field-value error-text">{{ error }}</div>
+    </div>
+  {% endif %}
+
+  <div class="divider"></div>
+
+  <a class="btn-back" href="/">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+    Вернуться назад
+  </a>
+</div>
+
+</body>
+</html>

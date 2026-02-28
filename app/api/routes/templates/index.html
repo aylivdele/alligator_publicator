@@ -1,0 +1,1534 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alligator Publicator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,400;0,500;1,400&family=Unbounded:wght@600;700;900&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #F7F6F2;
+    --surface: #FFFFFF;
+    --surface-2: #F0EEE9;
+    --border: #E8E5DE;
+    --accent: #5B6AF5;
+    --accent-soft: #EEEFFE;
+    --accent-hover: #4455E8;
+    --text: #18171A;
+    --text-secondary: #5C5A60;
+    --muted: #A8A5AD;
+    --success: #3DBF7C;
+    --success-soft: #EDFAF4;
+    --error: #E84545;
+    --error-soft: #FEF0F0;
+    --font-display: 'Unbounded', sans-serif;
+    --font-mono: 'DM Mono', monospace;
+    --radius: 12px;
+    --radius-sm: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04);
+    --shadow-modal: 0 8px 32px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-mono);
+    min-height: 100vh;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+  }
+
+  /* ── Header ── */
+  header {
+    padding: 20px 48px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .logo {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--text);
+  }
+  .logo span { color: var(--accent); }
+
+  .header-badge {
+    font-size: 10px;
+    color: var(--text-secondary);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    padding: 5px 12px;
+    border-radius: 20px;
+  }
+
+  /* ── Main ── */
+  main {
+    padding: 52px 48px;
+    max-width: 960px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  /* Hero */
+  .hero { margin-bottom: 48px; }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: var(--accent-soft);
+    border: 1px solid rgba(91,106,245,.15);
+    padding: 5px 14px;
+    border-radius: 20px;
+    margin-bottom: 24px;
+  }
+  .tag::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+
+  h1 {
+    font-family: var(--font-display);
+    font-size: clamp(32px, 5vw, 60px);
+    font-weight: 900;
+    line-height: 1.05;
+    color: var(--text);
+    margin-bottom: 16px;
+  }
+  h1 em { font-style: normal; color: var(--accent); }
+
+  .desc {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.8;
+    max-width: 440px;
+  }
+
+  /* Auth section */
+  .auth-section { margin-bottom: 52px; }
+
+  .btn-auth {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 32px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    letter-spacing: 0.02em;
+    border-radius: var(--radius);
+    border: none;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    box-shadow: 0 2px 8px rgba(91,106,245,.3);
+  }
+  .btn-auth:hover {
+    background: var(--accent-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(91,106,245,.4);
+  }
+  .btn-auth:active { transform: translateY(0); }
+  .btn-auth svg { flex-shrink: 0; }
+
+  /* ── Accounts section ── */
+  .accounts-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+
+  .accounts-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .accounts-title {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .accounts-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 12px;
+  }
+
+  /* ── Filter bar ── */
+  .filter-bar {
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .filter-label {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-right: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .filter-chips {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 500;
+    border: 1.5px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .filter-chip:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .filter-chip.active {
+    border-color: var(--accent);
+    background: var(--accent);
+    color: #fff;
+  }
+  .filter-chip.active svg { stroke: #fff; }
+
+  .filter-chip svg { flex-shrink: 0; }
+
+  .filter-chip-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+
+  /* ── убираем устаревшие стили группировки ── */
+
+  /* folder name pill inside table cell */
+  .folder-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 9px;
+    font-size: 11px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+  .folder-pill svg { color: var(--muted); flex-shrink: 0; }
+  .folder-pill.no-folder { color: var(--muted); font-style: italic; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding: 12px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    font-weight: 500;
+  }
+
+  td {
+    padding: 15px 24px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #FAFAFF; }
+
+  .username { font-weight: 500; color: var(--text); }
+  .username::before { content: '@'; color: var(--muted); }
+
+  .cell-muted { color: var(--text-secondary); font-size: 11px; }
+
+  .token-preview {
+    font-size: 11px;
+    color: var(--muted);
+    background: var(--surface-2);
+    padding: 3px 8px;
+    border-radius: 6px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    font-size: 10px;
+    background: var(--success-soft);
+    color: var(--success);
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  .badge::before {
+    content: '';
+    width: 5px; height: 5px;
+    border-radius: 50%;
+    background: var(--success);
+  }
+
+  /* Empty state */
+  .empty-state {
+    padding: 64px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  .empty-icon {
+    width: 48px; height: 48px;
+    background: var(--surface-2);
+    border-radius: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    color: var(--muted);
+  }
+  .empty-state p {
+    color: var(--text-secondary);
+    margin-top: 6px;
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
+  /* Loading */
+  .loading {
+    padding: 48px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .spinner {
+    width: 20px; height: 20px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Footer */
+  footer {
+    padding: 20px 48px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* ══════════════════════════════════════
+     MODAL / POPUP
+  ══════════════════════════════════════ */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(24, 23, 26, 0.45);
+    backdrop-filter: blur(4px);
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .modal-backdrop.open {
+    opacity: 1;
+    pointer-events: all;
+  }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    width: 100%;
+    max-width: 460px;
+    box-shadow: var(--shadow-modal);
+    transform: translateY(12px) scale(0.98);
+    transition: transform 0.22s ease;
+    overflow: hidden;
+  }
+  .modal-backdrop.open .modal {
+    transform: translateY(0) scale(1);
+  }
+
+  .modal-header {
+    padding: 24px 28px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .modal-title {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .modal-subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 0.03em;
+  }
+
+  .btn-close {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .btn-close:hover { border-color: var(--text); color: var(--text); }
+
+  .modal-body {
+    padding: 24px 28px;
+    max-height: 60vh;
+    overflow-y: auto;
+  }
+
+  /* Folders list in modal */
+  .section-label {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+
+  .folders-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 20px;
+  }
+
+  .folder-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--surface);
+  }
+  .folder-option:hover {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .folder-option.selected {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .folder-option input[type="radio"] { display: none; }
+
+  .folder-option-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: var(--surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .folder-option.selected .folder-option-icon {
+    background: rgba(91,106,245,.12);
+    color: var(--accent);
+  }
+
+  .folder-option-name {
+    font-size: 13px;
+    color: var(--text);
+    font-weight: 500;
+    flex: 1;
+  }
+  .folder-option-count {
+    font-size: 11px;
+    color: var(--muted);
+  }
+
+  .folder-option-check {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .folder-option.selected .folder-option-check {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+  .folder-option.selected .folder-option-check::after {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #fff;
+  }
+
+  /* No folders state */
+  .no-folders {
+    text-align: center;
+    padding: 16px 0 8px;
+    color: var(--muted);
+    font-size: 12px;
+    margin-bottom: 16px;
+  }
+
+  /* Divider */
+  .modal-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--muted);
+    font-size: 10px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+  .modal-divider::before,
+  .modal-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* New folder input */
+  .new-folder-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .input-folder {
+    flex: 1;
+    padding: 11px 14px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .input-folder::placeholder { color: var(--muted); }
+  .input-folder:focus { border-color: var(--accent); }
+
+  .btn-create-folder {
+    padding: 11px 16px;
+    background: var(--surface-2);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-create-folder:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .btn-create-folder:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .input-error {
+    font-size: 11px;
+    color: var(--error);
+    margin-top: 6px;
+    display: none;
+  }
+  .input-error.visible { display: block; }
+
+  /* Modal footer */
+  .modal-footer {
+    padding: 16px 28px 24px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+
+  .btn-cancel {
+    padding: 12px 20px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-cancel:hover { border-color: var(--text); color: var(--text); }
+
+  .btn-proceed {
+    padding: 12px 24px;
+    background: var(--accent);
+    border: none;
+    border-radius: var(--radius-sm);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.18s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 2px 8px rgba(91,106,245,.25);
+  }
+  .btn-proceed:hover { background: var(--accent-hover); box-shadow: 0 4px 14px rgba(91,106,245,.4); }
+  .btn-proceed:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+  /* ══════════════════════════════════════
+     PUBLISH FORM
+  ══════════════════════════════════════ */
+  .publish-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    margin-bottom: 28px;
+  }
+
+  .publish-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .publish-title {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .publish-body {
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* Dropzone */
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius-sm);
+    padding: 32px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.18s ease;
+    background: var(--bg);
+    text-align: center;
+    min-height: 160px;
+    position: relative;
+  }
+  .dropzone:hover,
+  .dropzone.drag-over {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+  }
+  .dropzone.has-file {
+    border-color: var(--success);
+    border-style: solid;
+    background: var(--success-soft);
+  }
+
+  .dropzone-icon {
+    width: 40px; height: 40px;
+    border-radius: 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .dropzone:hover .dropzone-icon,
+  .dropzone.drag-over .dropzone-icon { border-color: var(--accent); color: var(--accent); }
+  .dropzone.has-file .dropzone-icon { border-color: var(--success); color: var(--success); background: var(--success-soft); }
+
+  .dropzone-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+  .dropzone-text strong { color: var(--accent); }
+  .dropzone.has-file .dropzone-text { color: var(--success); }
+
+  .dropzone-hint {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+
+  /* Caption textarea */
+  .caption-col {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .field-label-sm {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 500;
+  }
+
+  .caption-textarea {
+    flex: 1;
+    min-height: 136px;
+    padding: 12px 14px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    outline: none;
+    resize: vertical;
+    transition: border-color 0.15s;
+    line-height: 1.6;
+  }
+  .caption-textarea::placeholder { color: var(--muted); }
+  .caption-textarea:focus { border-color: var(--accent); background: var(--surface); }
+
+  /* Publish footer */
+  .publish-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .folder-select-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 180px;
+  }
+
+  .folder-select-wrap .field-label-sm { white-space: nowrap; }
+
+  .folder-select {
+    flex: 1;
+    padding: 9px 32px 9px 12px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text);
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23A8A5AD' stroke-width='2.5' xmlns='http://www.w3.org/2000/svg'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color 0.15s;
+  }
+  .folder-select:focus { border-color: var(--accent); }
+  .folder-select:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-publish {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 11px 24px;
+    background: var(--accent);
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 500;
+    border: none;
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.18s ease;
+    box-shadow: 0 2px 8px rgba(91,106,245,.25);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .btn-publish:hover { background: var(--accent-hover); box-shadow: 0 4px 14px rgba(91,106,245,.4); }
+  .btn-publish:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; transform: none; }
+  .btn-publish:active:not(:disabled) { transform: translateY(1px); }
+
+  /* Publish status toast */
+  .publish-status {
+    font-size: 12px;
+    padding: 8px 14px;
+    border-radius: var(--radius-sm);
+    display: none;
+    align-items: center;
+    gap: 8px;
+  }
+  .publish-status.visible { display: inline-flex; }
+  .publish-status.ok { background: var(--success-soft); color: var(--success); border: 1px solid rgba(61,191,124,.2); }
+  .publish-status.err { background: var(--error-soft); color: var(--error); border: 1px solid rgba(232,69,69,.2); }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    header, footer { padding-left: 20px; padding-right: 20px; }
+    main { padding: 32px 20px; }
+    th, td, .accounts-header, .folder-label,
+    .publish-header, .publish-footer { padding-left: 16px; padding-right: 16px; }
+    .publish-body { grid-template-columns: 1fr; padding: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Alligator <span>/</span> Publicator</div>
+  <div class="header-badge">Instagram Auth Manager</div>
+</header>
+
+<main>
+  <div class="hero">
+    <div class="tag">Instagram Platform API</div>
+    <h1>Token <em>Manager</em></h1>
+    <p class="desc">Авторизуй Instagram аккаунты и получай долгоживущие токены (60 дней) для автопостинга.</p>
+  </div>
+
+  <div class="auth-section">
+    <button class="btn-auth" onclick="openModal()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="2" y="2" width="20" height="20" rx="5"/>
+        <circle cx="12" cy="12" r="4"/>
+        <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
+      </svg>
+      Подключить Instagram аккаунт
+    </button>
+  </div>
+
+  <!-- ── Форма публикации ── -->
+  <div class="publish-section">
+    <div class="publish-header">
+      <div class="publish-title">Публикация видео</div>
+    </div>
+
+    <form id="publishForm" onsubmit="submitPublish(event)">
+      <input type="file" id="fileInput" name="file" accept="video/*" hidden
+             onchange="onFileSelected(this)">
+
+      <div class="publish-body">
+        <!-- Dropzone -->
+        <div class="dropzone" id="dropzone"
+             onclick="document.getElementById('fileInput').click()"
+             ondragover="onDragOver(event)"
+             ondragleave="onDragLeave(event)"
+             ondrop="onDrop(event)">
+          <div class="dropzone-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+          </div>
+          <div class="dropzone-text" id="dropzoneText">
+            <strong>Выбери файл</strong> или перетащи сюда
+          </div>
+          <div class="dropzone-hint">MP4, MOV, AVI · до 100 МБ</div>
+        </div>
+
+        <!-- Caption -->
+        <div class="caption-col">
+          <div class="field-label-sm">Описание (caption)</div>
+          <textarea
+            class="caption-textarea"
+            name="caption"
+            id="captionInput"
+            placeholder="Напиши описание к публикации…"
+            maxlength="2200"
+          ></textarea>
+        </div>
+      </div>
+
+      <div class="publish-footer">
+        <!-- Папка -->
+        <div class="folder-select-wrap">
+          <span class="field-label-sm">Папка</span>
+          <select class="folder-select" name="selected_folder_id" id="publishFolderSelect">
+            <option value="">— нет папок —</option>
+          </select>
+        </div>
+
+        <!-- Статус -->
+        <div class="publish-status" id="publishStatus"></div>
+
+        <!-- Кнопка -->
+        <button type="submit" class="btn-publish" id="btnPublish">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"/>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+          </svg>
+          Запостить
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div class="accounts-section">
+    <div class="accounts-header">
+      <div class="accounts-title">Подключённые аккаунты</div>
+      <div class="accounts-header-right">
+        <div class="count-badge" id="accountsCount">—</div>
+      </div>
+    </div>
+
+    <!-- Фильтр по папкам -->
+    <div class="filter-bar" id="filterBar" style="display:none;">
+      <span class="filter-label">Папки</span>
+      <div class="filter-chips" id="filterChips"></div>
+    </div>
+
+    <div id="accountsBody">
+      <div class="loading">
+        <div class="spinner"></div>
+        Загрузка аккаунтов…
+      </div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>alligator.meta-box.ru</span>
+  <span>API: /api/accounts · /api/token/{id}</span>
+</footer>
+
+<!-- ══════════════════════════════════════
+     POPUP: Выбор / создание папки
+══════════════════════════════════════ -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="handleBackdropClick(event)">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalTitle">Выбор папки</div>
+        <div class="modal-subtitle">Выбери папку или создай новую</div>
+      </div>
+      <button class="btn-close" onclick="closeModal()" aria-label="Закрыть">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body">
+      <!-- Список существующих папок -->
+      <div class="section-label">Существующие папки</div>
+      <div class="folders-list" id="foldersList">
+        <div class="loading" style="padding:16px 0">
+          <div class="spinner"></div>
+        </div>
+      </div>
+
+      <div class="modal-divider">или создай новую</div>
+
+      <!-- Создание новой папки -->
+      <div class="new-folder-row">
+        <input
+          type="text"
+          class="input-folder"
+          id="newFolderInput"
+          placeholder="Название папки…"
+          maxlength="64"
+          autocomplete="off"
+          onkeydown="handleFolderInputKey(event)"
+        />
+        <button class="btn-create-folder" id="btnCreateFolder" onclick="createFolder()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+          Создать
+        </button>
+      </div>
+      <div class="input-error" id="folderError"></div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+      <button class="btn-proceed" id="btnProceed" onclick="proceedAuth()" disabled>
+        Подключить аккаунт
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ══════════════════════════════════════
+     State
+  ══════════════════════════════════════ */
+  let allAccounts = [];
+  let activeFilterIds = new Set(); // пусто = "Все"
+  let selectedFolderId = null;     // для попапа авторизации
+
+  /* ══════════════════════════════════════
+     Utils
+  ══════════════════════════════════════ */
+  function escHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  const FOLDER_ICON = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+  </svg>`;
+
+  /* ══════════════════════════════════════
+     Загрузка и рендер аккаунтов
+  ══════════════════════════════════════ */
+  async function loadAccounts() {
+    try {
+      const res = await fetch('/api/accounts');
+      allAccounts = await res.json();
+      buildFilterBar();
+      applyFilter();
+    } catch {
+      document.getElementById('accountsBody').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <circle cx="12" cy="16" r="1" fill="currentColor"/>
+            </svg>
+          </div>
+          <div>Ошибка загрузки</div>
+        </div>`;
+    }
+  }
+
+  /* ══════════════════════════════════════
+     Publish form
+  ══════════════════════════════════════ */
+
+  /* Dropzone drag-and-drop */
+  function onDragOver(e) {
+    e.preventDefault();
+    document.getElementById('dropzone').classList.add('drag-over');
+  }
+  function onDragLeave(e) {
+    document.getElementById('dropzone').classList.remove('drag-over');
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    const dz = document.getElementById('dropzone');
+    dz.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) setDropzoneFile(file);
+  }
+  function onFileSelected(input) {
+    if (input.files[0]) setDropzoneFile(input.files[0]);
+  }
+  function setDropzoneFile(file) {
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    document.getElementById('fileInput').files = dt.files;
+
+    const dz = document.getElementById('dropzone');
+    dz.classList.add('has-file');
+    document.getElementById('dropzoneText').innerHTML =
+      `<strong>${escHtml(file.name)}</strong><br>${(file.size / 1024 / 1024).toFixed(1)} МБ`;
+  }
+
+  /* Наполняем <select> папками */
+  function buildPublishFolderSelect(folderMap) {
+    const sel = document.getElementById('publishFolderSelect');
+    const prev = sel.value;
+
+    if (!folderMap || !folderMap.size) {
+      sel.innerHTML = '<option value="">— нет папок —</option>';
+      sel.disabled = true;
+      return;
+    }
+
+    sel.disabled = false;
+    sel.innerHTML = [...folderMap.values()]
+      .filter(f => f.id !== null)           // исключаем "Без папки"
+      .map(f => `<option value="${f.id}">${escHtml(f.label)} (${f.count})</option>`)
+      .join('');
+
+    /* Восстанавливаем предыдущий выбор если возможно */
+    if (prev && sel.querySelector(`option[value="${prev}"]`)) sel.value = prev;
+  }
+
+  /* Синхронизируем select с фильтром:
+     если выбрана ровно одна папка — ставим её автоматически */
+  function syncPublishFolderWithFilter() {
+    const sel = document.getElementById('publishFolderSelect');
+    if (activeFilterIds.size === 1) {
+      const [id] = activeFilterIds;
+      if (id !== null && sel.querySelector(`option[value="${id}"]`)) {
+        sel.value = String(id);
+      }
+    }
+    /* при "Все" или мульти — не трогаем, пользователь выбирает сам */
+  }
+
+  /* Отправка формы */
+  async function submitPublish(e) {
+    e.preventDefault();
+
+    const fileInput = document.getElementById('fileInput');
+    const caption = document.getElementById('captionInput').value.trim();
+    const folderId = document.getElementById('publishFolderSelect').value;
+    const statusEl = document.getElementById('publishStatus');
+
+    if (!fileInput.files.length) {
+      showPublishStatus('Выбери видеофайл', 'err');
+      return;
+    }
+    if (!folderId) {
+      showPublishStatus('Выбери папку', 'err');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+    formData.append('caption', caption);
+    formData.append('selected_folder_id', folderId);
+
+    const btn = document.getElementById('btnPublish');
+    btn.disabled = true;
+    btn.innerHTML = `<div class="spinner" style="width:14px;height:14px;margin:0;border-width:1.5px"></div> Публикую…`;
+    hidePublishStatus();
+
+    try {
+      const res = await fetch('/api/publish', { method: 'POST', body: formData });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        showPublishStatus(data.message || 'Видео отправлено!', 'ok');
+        /* Сбрасываем форму */
+        document.getElementById('fileInput').value = '';
+        document.getElementById('captionInput').value = '';
+        const dz = document.getElementById('dropzone');
+        dz.classList.remove('has-file');
+        document.getElementById('dropzoneText').innerHTML =
+          `<strong>Выбери файл</strong> или перетащи сюда`;
+      } else {
+        showPublishStatus(data.detail || data.error || 'Ошибка публикации', 'err');
+      }
+    } catch {
+      showPublishStatus('Сетевая ошибка, попробуй снова', 'err');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="22" y1="2" x2="11" y2="13"/>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg> Запостить`;
+    }
+  }
+
+  function showPublishStatus(msg, type) {
+    const el = document.getElementById('publishStatus');
+    el.textContent = msg;
+    el.className = `publish-status visible ${type}`;
+  }
+  function hidePublishStatus() {
+    document.getElementById('publishStatus').className = 'publish-status';
+  }
+
+  /* ── Строим фильтр-чипы ── */
+  function buildFilterBar() {
+    if (!allAccounts.length) return;
+
+    /* Собираем уникальные папки из аккаунтов */
+    const folderMap = new Map();
+    allAccounts.forEach(a => {
+      const key = a.folder_id ?? null;
+      const label = a.folder_name ?? 'Без папки';
+      if (!folderMap.has(key)) folderMap.set(key, { id: key, label, count: 0 });
+      folderMap.get(key).count++;
+    });
+
+    /* Всегда обновляем селект папок в форме публикации */
+    buildPublishFolderSelect(folderMap);
+
+    /* Показываем панель фильтра только если есть хотя бы 2 разных «категории» */
+    const filterBar = document.getElementById('filterBar');
+    const filterChips = document.getElementById('filterChips');
+
+    if (folderMap.size < 2) {
+      filterBar.style.display = 'none';
+      /* Если только одна папка — подставляем её в форму автоматически */
+      if (folderMap.size === 1) {
+        const [f] = folderMap.values();
+        if (f.id !== null) document.getElementById('publishFolderSelect').value = String(f.id);
+      }
+      return;
+    }
+
+    filterBar.style.display = 'flex';
+
+    const allChip = `
+      <button class="filter-chip active" id="chip-all" onclick="toggleFilterAll()">
+        Все
+        <span class="count-badge" style="background:rgba(255,255,255,.25);color:#fff;font-size:10px;height:18px;min-width:18px;padding:0 5px;">
+          ${allAccounts.length}
+        </span>
+      </button>`;
+
+    const folderChips = [...folderMap.values()].map(f => `
+      <button
+        class="filter-chip"
+        id="chip-${f.id}"
+        onclick="toggleFilter(${f.id === null ? 'null' : f.id}, this)"
+        data-id="${f.id}"
+      >
+        ${f.id !== null ? FOLDER_ICON : ''}
+        ${escHtml(f.label)}
+        <span style="opacity:.65;margin-left:2px;">${f.count}</span>
+      </button>`).join('');
+
+    filterChips.innerHTML = allChip + folderChips;
+  }
+
+  /* ── Переключение «Все» ── */
+  function toggleFilterAll() {
+    activeFilterIds.clear();
+    /* Снимаем выделение со всех папочных чипов */
+    document.querySelectorAll('.filter-chip:not(#chip-all)').forEach(c => c.classList.remove('active'));
+    document.getElementById('chip-all')?.classList.add('active');
+    applyFilter();
+  }
+
+  /* ── Переключение отдельной папки ── */
+  function toggleFilter(id, btn) {
+    const key = id === 'null' ? null : id; // null = "Без папки"
+
+    if (activeFilterIds.has(key)) {
+      activeFilterIds.delete(key);
+      btn.classList.remove('active');
+    } else {
+      activeFilterIds.add(key);
+      btn.classList.add('active');
+      /* Снимаем "Все" */
+      document.getElementById('chip-all')?.classList.remove('active');
+    }
+
+    /* Если ни одна папка не выбрана — откатываемся к «Все» */
+    if (activeFilterIds.size === 0) toggleFilterAll();
+    else {
+      applyFilter();
+      syncPublishFolderWithFilter();
+    }
+  }
+
+  /* ── Применяем фильтр и рендерим таблицу ── */
+  function applyFilter() {
+    const isAll = activeFilterIds.size === 0;
+    const visible = isAll
+      ? allAccounts
+      : allAccounts.filter(a => activeFilterIds.has(a.folder_id ?? null));
+
+    document.getElementById('accountsCount').textContent = visible.length;
+    renderTable(visible);
+  }
+
+  function renderTable(accounts) {
+    const body = document.getElementById('accountsBody');
+
+    if (!accounts.length) {
+      body.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="2" width="20" height="20" rx="5"/>
+              <circle cx="12" cy="12" r="4"/>
+              <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
+            </svg>
+          </div>
+          <div>${allAccounts.length ? 'Нет аккаунтов по выбранному фильтру' : 'Нет подключённых аккаунтов'}</div>
+          ${!allAccounts.length ? '<p>Нажми кнопку выше, чтобы подключить первый аккаунт</p>' : ''}
+        </div>`;
+      return;
+    }
+
+    const rows = accounts.map(a => {
+      const folderPill = a.folder_name
+        ? `<span class="folder-pill">${FOLDER_ICON}${escHtml(a.folder_name)}</span>`
+        : `<span class="folder-pill no-folder">Без папки</span>`;
+
+      return `
+        <tr>
+          <td><span class="username">${escHtml(a.username)}</span></td>
+          <td>${folderPill}</td>
+          <td><span class="cell-muted">${escHtml(a.instagram_id)}</span></td>
+          <td><span class="token-preview">${escHtml(a.access_token.slice(0, 28))}…</span></td>
+          <td><span class="cell-muted">${Math.floor(a.expires_in / 86400)} дн.</span></td>
+          <td><span class="badge">Active</span></td>
+        </tr>`;
+    }).join('');
+
+    body.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>Аккаунт</th>
+            <th>Папка</th>
+            <th>Instagram ID</th>
+            <th>Токен</th>
+            <th>Срок</th>
+            <th>Статус</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  /* ══════════════════════════════════════
+     Modal — выбор папки перед авторизацией
+  ══════════════════════════════════════ */
+  async function openModal() {
+    selectedFolderId = null;
+    document.getElementById('btnProceed').disabled = true;
+    document.getElementById('newFolderInput').value = '';
+    clearFolderError();
+
+    document.getElementById('modalBackdrop').classList.add('open');
+    document.body.style.overflow = 'hidden';
+
+    await loadFolders();
+    document.getElementById('newFolderInput').focus();
+  }
+
+  function closeModal() {
+    document.getElementById('modalBackdrop').classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  function handleBackdropClick(e) {
+    if (e.target === document.getElementById('modalBackdrop')) closeModal();
+  }
+
+  async function loadFolders() {
+    const list = document.getElementById('foldersList');
+    list.innerHTML = '<div class="loading" style="padding:12px 0"><div class="spinner"></div></div>';
+    try {
+      const res = await fetch('/api/folders');
+      const folders = await res.json();
+      renderFolderOptions(folders);
+    } catch {
+      list.innerHTML = '<div class="no-folders">Не удалось загрузить папки</div>';
+    }
+  }
+
+  function renderFolderOptions(folders) {
+    const list = document.getElementById('foldersList');
+    if (!folders.length) {
+      list.innerHTML = '<div class="no-folders">Пока нет папок — создай первую</div>';
+      return;
+    }
+    list.innerHTML = folders.map(f => `
+      <label class="folder-option" data-id="${f.id}" onclick="selectFolder(${f.id}, this)">
+        <input type="radio" name="folder" value="${f.id}"/>
+        <div class="folder-option-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+          </svg>
+        </div>
+        <span class="folder-option-name">${escHtml(f.name)}</span>
+        <span class="folder-option-count">${f.count} акк.</span>
+        <div class="folder-option-check"></div>
+      </label>`).join('');
+  }
+
+  function selectFolder(id, el) {
+    document.querySelectorAll('.folder-option').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedFolderId = id;
+    document.getElementById('btnProceed').disabled = false;
+    clearFolderError();
+  }
+
+  async function createFolder() {
+    const input = document.getElementById('newFolderInput');
+    const name = input.value.trim();
+    if (!name) { showFolderError('Введи название папки'); return; }
+
+    const btn = document.getElementById('btnCreateFolder');
+    btn.disabled = true;
+    btn.textContent = '…';
+
+    try {
+      const res = await fetch('/api/folders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+
+      if (!res.ok) { showFolderError(data.error || 'Ошибка создания папки'); return; }
+
+      input.value = '';
+      clearFolderError();
+      await loadFolders();
+
+      setTimeout(() => {
+        const el = document.querySelector(`.folder-option[data-id="${data.id}"]`);
+        if (el) selectFolder(data.id, el);
+      }, 50);
+
+    } catch {
+      showFolderError('Сетевая ошибка, попробуй снова');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg> Создать`;
+    }
+  }
+
+  function handleFolderInputKey(e) { if (e.key === 'Enter') createFolder(); }
+
+  function showFolderError(msg) {
+    const el = document.getElementById('folderError');
+    el.textContent = msg;
+    el.classList.add('visible');
+  }
+  function clearFolderError() {
+    document.getElementById('folderError').classList.remove('visible');
+  }
+
+  function proceedAuth() {
+    if (!selectedFolderId) return;
+    window.location.href = `/start-auth?folder_id=${selectedFolderId}`;
+  }
+
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+  /* ── Init ── */
+  loadAccounts();
+</script>
+
+</body>
+</html>
