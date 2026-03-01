@@ -20,6 +20,6 @@ def create_app() -> FastAPI:
     app.include_router(folders.router, prefix="/api")
     app.include_router(accounts.router, prefix="/api")
     app.include_router(publish.create_publish_routes(uniqalizer, graph_api), prefix="/api")
-    app.include_router(auth.create_auth_routes(graph_api), prefix="/")
+    app.include_router(auth.create_auth_routes(graph_api))
 
     return app
