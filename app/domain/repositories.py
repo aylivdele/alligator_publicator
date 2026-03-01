@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from app.domain.models import InstagramAccount
-from domain.entities import Reel, UserGroup
+from app.domain.entities import Reel, UserGroup
 
 
 class InstagramPublisher(ABC):
