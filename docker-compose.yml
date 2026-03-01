@@ -10,10 +10,13 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL}/s3
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_SERVER_URL}/s3/console
     volumes:
-      - minio_data:/data
-    ports:
-      - "9001:9001"   # Web Console
+      - /srv/minio/data:/data
+    expose:
+      - "9000"
+      - "9001"
     networks:
       - reels_network
 
@@ -26,12 +29,14 @@ services:
     ports: 
       - "8000:8000"
     environment:
-      STORAGE_ENDPOINT: http://minio:9000
+      STORAGE_ENDPOINT: ${MINIO_SERVER_URL}/s3
       STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
       STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       STORAGE_BUCKET: reels
     env_file:
       - .env
+    volumes:
+      -/srv/publisher/data:/data
     networks:
       - reels_network
 
