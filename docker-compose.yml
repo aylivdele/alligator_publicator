@@ -37,8 +37,11 @@ services:
       STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
       STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       STORAGE_BUCKET: reels
-    env_file:
-      - .env
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      GRAPH_API_CLIENT_ID: ${GRAPH_API_CLIENT_ID}
+      GRAPH_API_CLIENT_SECRET: ${GRAPH_API_CLIENT_SECRET}
+      GRAPH_API_REDIRECT_URI: ${GRAPH_API_REDIRECT_URI}
+
     expose:
       - "8000"
     depends_on:
@@ -58,8 +61,10 @@ services:
       STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
       STORAGE_BUCKET: reels
       DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-    env_file:
-      - .env
+      GRAPH_API_CLIENT_ID: ${GRAPH_API_CLIENT_ID}
+      GRAPH_API_CLIENT_SECRET: ${GRAPH_API_CLIENT_SECRET}
+      GRAPH_API_REDIRECT_URI: ${GRAPH_API_REDIRECT_URI}
+
     depends_on:
       - postgres
       - minio
