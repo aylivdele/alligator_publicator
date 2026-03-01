@@ -55,8 +55,8 @@ class PublishTask(Base):
     file_path = Column(Text)
     caption = Column(Text)
 
-    status = Column(enum.Enum(TaskStatus), default=TaskStatus.pending, nullable=False)
-    stage = Column(enum.Enum(TaskStage), nullable=True)
+    status = Column(TaskStatus, default=TaskStatus.pending, nullable=False)
+    stage = Column(TaskStage, nullable=True)
     error = Column(Text)
 
     locked_at = Column(DateTime, nullable=True)
