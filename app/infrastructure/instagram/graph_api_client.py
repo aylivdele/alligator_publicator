@@ -64,7 +64,7 @@ class InstagramGraphApiClient(InstagramPublisher):
 
     async def publish_reel(self, reel: Reel, account: InstagramAccount) -> str:
         creation_id = self._create_media_container(reel, account)
-        await self._wait_for_container(creation_id)
+        await self._wait_for_container(creation_id, account)
         return self._publish_media(creation_id, account)
 
     def _create_media_container(self, reel: Reel, account: InstagramAccount) -> str:
@@ -85,12 +85,12 @@ class InstagramGraphApiClient(InstagramPublisher):
 
         return response.json()["id"]
     
-    async def _wait_for_container(self, creation_id: str):
+    async def _wait_for_container(self, creation_id: str, account: InstagramAccount):
         url = f"{self.BASE_URL}/{creation_id}"
 
         params={
             "fields": "status_code,status",
-            "access_token": self.access_token
+            "access_token": account.access_token
         }
         sleep_seconds = 10
 
@@ -102,7 +102,7 @@ class InstagramGraphApiClient(InstagramPublisher):
             finished = response.json()["status_code"] == "FINISHED"
             if not finished:
                 self.logger.info(f"Waiting {sleep_seconds} seconds for container {creation_id} to upload")
-                asyncio.sleep(sleep_seconds)
+                await asyncio.sleep(sleep_seconds)
                 sleep_seconds += sleep_seconds
 
 

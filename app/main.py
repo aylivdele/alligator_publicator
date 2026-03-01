@@ -13,7 +13,7 @@ def create_app() -> FastAPI:
     storage = S3Storage(settings.STORAGE_ENDPOINT, settings.STORAGE_ACCESS_KEY, settings.STORAGE_SECRET_KEY, settings.STORAGE_BUCKET)
     generator = FFmpegUniqueReelGenerator()
     uniqalizer = ReelsUniqalizerService(generator, storage)
-    graph_api = InstagramGraphApiClient(settings.CLIENT_ID, settings.CLIENT_SECRET, settings.REDIRECT_URI)
+    graph_api = InstagramGraphApiClient(settings.GRAPH_API_CLIENT_ID, settings.GRAPH_API_CLIENT_SECRET, settings.GRAPH_API_REDIRECT_URI)
 
     app = FastAPI(title="Instagram Publisher API")
 
