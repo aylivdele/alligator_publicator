@@ -11,7 +11,7 @@ services:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
       MINIO_SERVER_URL: ${MINIO_SERVER_URL}/s3
-      MINIO_BROWSER_REDIRECT_URL: ${MINIO_SERVER_URL}/s3/console
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_SERVER_URL}/web-console
     volumes:
       - /srv/minio/data:/data
     expose:
