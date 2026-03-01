@@ -1,14 +1,11 @@
-from fastapi import APIRouter, BackgroundTasks, Depends, UploadFile, File, Form
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 import uuid
 import shutil
 
-from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.application.services.uniqalize_reel import ReelsUniqalizerService
-from app.application.services.publish_task import PublishVideoTask, process_video_task
-from app.domain.entities import Reel
-from app.domain.models import Folder, InstagramAccount, PublishTask, TaskStage, TaskStatus
+from app.domain.models import PublishTask, TaskStatus
 from app.domain.repositories import InstagramPublisher
 from app.infrastructure.database.db import get_db
 
