@@ -24,6 +24,7 @@ async def get_accounts(db: Session = Depends(get_db)):
             "id": a.id,
             "instagram_id": a.instagram_id,
             "username": a.username,
+            "access_token": a.access_token[:10],
             "expires_in": a.expires_in,
             "created_at": str(a.created_at),
             "folder_id": a.folder_id,
