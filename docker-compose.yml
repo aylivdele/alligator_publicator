@@ -21,7 +21,17 @@ services:
       - reels_network
   api:
     build: .
-    command: gunicorn -k uvicorn.workers.UvicornWorker -w 2 --timeout 120 -b 0.0.0.0:8000 app.main:create_app()
+    command:
+      - gunicorn
+      - -k
+      - uvicorn.workers.UvicornWorker
+      - -w
+      - "2"
+      - --timeout
+      - "120"
+      - -b
+      - 0.0.0.0:8000
+      - app.main:create_app()
     environment:
       STORAGE_ENDPOINT: ${MINIO_SERVER_URL}/s3
       STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
