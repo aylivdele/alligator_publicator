@@ -10,8 +10,8 @@ services:
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
-      MINIO_SERVER_URL: ${MINIO_SERVER_URL}/s3
-      MINIO_BROWSER_REDIRECT_URL: ${MINIO_SERVER_URL}/web-console
+      MINIO_SERVER_URL: ${MINIO_SERVER_URL}
+      MINIO_BROWSER_REDIRECT_URL: ${MINIO_BROWSER_REDIRECT_URL}
     volumes:
       - /srv/minio/data:/data
     ports:
