@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.domain.models import InstagramAccount
-from app.infrastructure.database.sqlite import get_db
+from app.infrastructure.database.db import get_db
 
 
 router = APIRouter()

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
 from app import config
-from app.api.routes import accounts, auth, folders, publish
+from app.api.routes import accounts, auth, folders, tasks
 from app.application.services.uniqalize_reel import ReelsUniqalizerService
 from app.infrastructure.instagram.graph_api_client import InstagramGraphApiClient
 from app.infrastructure.storage.s3 import S3Storage
@@ -19,7 +19,7 @@ def create_app() -> FastAPI:
 
     app.include_router(folders.router, prefix="/api")
     app.include_router(accounts.router, prefix="/api")
-    app.include_router(publish.create_publish_routes(uniqalizer, graph_api), prefix="/api")
+    app.include_router(tasks.create_publish_routes(uniqalizer, graph_api), prefix="/api")
     app.include_router(auth.create_auth_routes(graph_api))
 
     return app

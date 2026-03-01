@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     STORAGE_SECRET_KEY: str
     STORAGE_BUCKET: str
 
+    DATABASE_URL: str
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore"

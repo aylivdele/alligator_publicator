@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.domain.models import Folder, InstagramAccount
-from app.infrastructure.database.sqlite import get_db
+from app.infrastructure.database.db import get_db
 from app.infrastructure.instagram.graph_api_client import InstagramGraphApiClient
 
 

@@ -1222,7 +1222,7 @@
     hidePublishStatus();
 
     try {
-      const res = await fetch('/api/publish', { method: 'POST', body: formData });
+      const res = await fetch('/api/tasks', { method: 'POST', body: formData });
       const data = await res.json().catch(() => ({}));
 
       if (res.ok) {

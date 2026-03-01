@@ -1,4 +1,8 @@
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from datetime import datetime
+import enum
+import uuid
+
+from sqlalchemy import UUID, Column, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.sql import func
 
@@ -13,6 +17,7 @@ class Folder(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     accounts = relationship("InstagramAccount", back_populates="folder")
+    tasks = relationship("PublishTask", back_populates="folder")
 
 
 class InstagramAccount(Base):
@@ -28,3 +33,35 @@ class InstagramAccount(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     folder = relationship("Folder", back_populates="accounts")
+
+
+class TaskStatus(str, enum.Enum):
+    pending = "pending"
+    processing = "processing"
+    completed = "completed"
+    failed = "failed"
+
+class TaskStage(str, enum.Enum):
+    writing = "writing"
+    processing = "processing"
+    uploading = "uploading"
+    done = "done"
+
+class PublishTask(Base):
+    __tablename__ = "publish_tasks"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    folder_id = Column(Integer, nullable=False)
+    file_path = Column(Text)
+    caption = Column(Text)
+
+    status = Column(enum.Enum(TaskStatus), default=TaskStatus.pending, nullable=False)
+    stage = Column(enum.Enum(TaskStage), nullable=True)
+    error = Column(Text)
+
+    locked_at = Column(DateTime, nullable=True)
+    locked_by = Column(String, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    folder = relationship("Folder", back_populates="tasks")

@@ -19,8 +19,7 @@ class FFmpegUniqueReelGenerator(UniqueReelGenerator):
             cmd = [
                 "ffmpeg",
                 "-i", input_path,
-                "-vf", f"scale=iw*{scale_variation}:ih*{scale_variation}",
-                "-filter:v", f"setpts={1/speed_variation}*PTS",
+                "-vf", f"scale=iw*{scale_variation}:ih*{scale_variation},setpts={1/speed_variation}*PTS",
                 "-c:a", "copy",
                 "-y",
                 output_path

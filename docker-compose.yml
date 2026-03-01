@@ -19,15 +19,15 @@ services:
       - "9001"
     networks:
       - reels_network
-
-  reels_publisher:
+  api:
     build: .
-    container_name: reels_publisher
-    restart: unless-stopped
-    depends_on:
-      - minio
-    ports: 
-      - "8000:8000"
+    command: >
+      gunicorn
+      -k uvicorn.workers.UvicornWorker
+      -w 2
+      --timeout 120
+      -b 0.0.0.0:8000
+      app.main:create_app()
     environment:
       STORAGE_ENDPOINT: ${MINIO_SERVER_URL}/s3
       STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
@@ -35,14 +35,50 @@ services:
       STORAGE_BUCKET: reels
     env_file:
       - .env
+    expose:
+      - "8000"
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - reels_network
     volumes:
-      - /srv/publisher/data:/data
+      - shared_media:/shared
+  worker:
+    build: .
+    command: python -m app.worker
+    restart: unless-stopped
+    environment:
+      STORAGE_ENDPOINT: ${MINIO_SERVER_URL}/s3
+      STORAGE_ACCESS_KEY: ${MINIO_ROOT_USER}
+      STORAGE_SECRET_KEY: ${MINIO_ROOT_PASSWORD}
+      STORAGE_BUCKET: reels
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+    env_file:
+      - .env
+    depends_on:
+      - postgres
+      - minio
+    networks:
+      - reels_network
+    volumes:
+      - shared_media:/shared
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - reels_network
 
 volumes:
-  minio_data:
-
+  postgres_data:
+  shared_media:
 networks:
   reels_network:
     driver: bridge
