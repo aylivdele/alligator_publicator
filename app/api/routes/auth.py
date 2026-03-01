@@ -1,4 +1,5 @@
 
+import os
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
@@ -14,7 +15,9 @@ from app.infrastructure.instagram.graph_api_client import InstagramGraphApiClien
 
 def create_auth_routes(graph_api: InstagramGraphApiClient):
     router = APIRouter()
-    templates = Jinja2Templates(directory="templates")
+    module_path = os.path.dirname(os.path.abspath(__file__)) 
+    template_dir = os.path.join(module_path, 'templates')
+    templates = Jinja2Templates(directory=template_dir)
     settings = config.settings
 
     def get_auth_url(folder_id: Optional[int] = None):
