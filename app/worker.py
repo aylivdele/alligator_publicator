@@ -3,19 +3,20 @@ import time
 import socket
 from datetime import datetime
 from sqlalchemy import select, update
+from sqlalchemy.orm import Session
 
 from app import config
 from app.application.services.publish_task import PublishVideoTask
 from app.application.services.uniqalize_reel import ReelsUniqalizerService
 from app.domain.models import PublishTask, TaskStatus
-from app.infrastructure.database.db import get_db
+from app.infrastructure.database.db import SessionLocal, get_db
 from app.infrastructure.instagram.graph_api_client import InstagramGraphApiClient
 from app.infrastructure.storage.s3 import S3Storage
 from app.infrastructure.video.ffmpeg_processor import FFmpegUniqueReelGenerator
 
 WORKER_ID = socket.gethostname()
 
-def fetch_task(db):
+def fetch_task(db: Session):
     task = db.execute(
         select(PublishTask)
         .where(PublishTask.status == TaskStatus.pending)
@@ -41,7 +42,8 @@ def run_worker():
     graph_api = InstagramGraphApiClient(settings.GRAPH_API_CLIENT_ID, settings.GRAPH_API_CLIENT_SECRET, settings.GRAPH_API_REDIRECT_URI)
 
     while True:
-        db = get_db()
+        db = SessionLocal()
+            
         try:
             task = fetch_task(db)
 
