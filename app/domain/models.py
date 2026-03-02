@@ -51,7 +51,7 @@ class PublishTask(Base):
     __tablename__ = "publish_tasks"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    folder_id = Column(Integer, nullable=False)
+    folder_id = Column(Integer, ForeignKey("folders.id"), nullable=False)
     file_path = Column(Text)
     caption = Column(Text)
 
