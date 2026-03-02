@@ -45,14 +45,19 @@ class PublishVideoTask:
       db.commit()
 
       async def run_tasks():
-        tasks = []
-        for index in range(0, len(reels)):
-          reel = reels[index]
-          account = accounts[index]
-          tasks.append(self.instagram_publisher.publish_reel(reel, account))
-        return asyncio.gather(*tasks)
-        
-      asyncio.run(run_tasks()) 
+        tasks = [
+            asyncio.create_task(
+                self.instagram_publisher.publish_reel(reel, account)
+            )
+            for reel, account in zip(reels, accounts)
+        ]
+
+        return await asyncio.gather(*tasks, return_exceptions=True) 
+            
+      results = asyncio.run(run_tasks()) 
+      for result in results:
+            if isinstance(result, Exception):
+                self.logger.exception("Publish failed", exc_info=result)
 
       task.status = TaskStatus.completed
       task.stage = TaskStage.done

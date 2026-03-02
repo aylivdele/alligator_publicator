@@ -15,7 +15,7 @@ class ReelsUniqalizerService:
         self.storage = storage    
         
     def on_generate(self, file_path: str) -> str:
-        key = f"reels/{uuid.uuid4()}.mp4"
+        key = f"{uuid.uuid4()}.mp4"
 
         self.storage.upload_file(file_path, key)
         url = self.storage.generate_presigned_url(key)

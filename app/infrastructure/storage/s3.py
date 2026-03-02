@@ -7,11 +7,11 @@ class S3Storage:
     def __init__(self, endpoint_url: str, access_key_id: str, access_key: str, bucket_name: str):
         self.bucket_name = bucket_name
         self.client = boto3.client(
-        "s3",
-        endpoint_url=endpoint_url,
-        aws_access_key_id=access_key_id,
-        aws_secret_access_key=access_key,
-    )
+            "s3",
+            endpoint_url=endpoint_url,
+            aws_access_key_id=access_key_id,
+            aws_secret_access_key=access_key,
+        )
 
     def upload_file(self, local_path: str, key: str) -> str:
         self.client.upload_file(local_path, self.bucket_name, key)

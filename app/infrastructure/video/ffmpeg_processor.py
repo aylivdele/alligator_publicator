@@ -16,12 +16,21 @@ class FFmpegUniqueReelGenerator(UniqueReelGenerator):
             scale_variation = random.uniform(1.01, 1.05)
             speed_variation = random.uniform(0.99, 1.01)
 
+            vf = (
+                f"scale=iw*{scale_variation}:ih*{scale_variation}:flags=fast_bilinear,"
+                f"setpts={1/speed_variation}*PTS"
+            )
+
             cmd = [
                 "ffmpeg",
                 "-i", input_path,
-                "-vf", f"scale=iw*{scale_variation}:ih*{scale_variation}",
-                "-filter:v", f"setpts={1/speed_variation}*PTS",
-                "-c:a", "copy",
+                "-vf", vf,
+                "-af", f"atempo={speed_variation}",
+                "-c:v", "libx264",
+                "-preset", "veryfast",
+                "-crf", "18",
+                "-pix_fmt", "yuv420p",
+                "-movflags", "+faststart",
                 "-y",
                 output_path
             ]

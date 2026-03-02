@@ -2,7 +2,6 @@ import asyncio
 import logging
 
 import httpx
-import requests
 from app.domain.models import InstagramAccount
 from app.domain.entities import Reel
 from app.domain.repositories import InstagramPublisher
@@ -62,11 +61,11 @@ class InstagramGraphApiClient(InstagramPublisher):
           
 
     async def publish_reel(self, reel: Reel, account: InstagramAccount) -> str:
-        creation_id = self._create_media_container(reel, account)
+        creation_id = await self._create_media_container(reel, account)
         await self._wait_for_container(creation_id, account)
-        return self._publish_media(creation_id, account)
+        return await self._publish_media(creation_id, account)
 
-    def _create_media_container(self, reel: Reel, account: InstagramAccount) -> str:
+    async def _create_media_container(self, reel: Reel, account: InstagramAccount) -> str:
         url = f"{self.BASE_URL}/{account.instagram_id}/media"
 
         payload = {
@@ -78,11 +77,11 @@ class InstagramGraphApiClient(InstagramPublisher):
 
         if reel.thumbnail_url:
             payload["thumb_offset"] = 0  # можно расширить
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, data=payload)
+            response.raise_for_status()
 
-        response = requests.post(url, data=payload)
-        response.raise_for_status()
-
-        return response.json()["id"]
+            return response.json()["id"]
     
     async def _wait_for_container(self, creation_id: str, account: InstagramAccount):
         url = f"{self.BASE_URL}/{creation_id}"
@@ -94,26 +93,27 @@ class InstagramGraphApiClient(InstagramPublisher):
         sleep_seconds = 10
 
         finished = False
-        while not finished:
-            response = requests.get(url, params=params)
-            response.raise_for_status()
+        async with httpx.AsyncClient() as client:
+            while not finished:
+                response = await client.get(url, params=params)
+                response.raise_for_status()
 
-            finished = response.json()["status_code"] == "FINISHED"
-            if not finished:
-                self.logger.info(f"Waiting {sleep_seconds} seconds for container {creation_id} to upload")
-                await asyncio.sleep(sleep_seconds)
-                sleep_seconds += sleep_seconds
+                finished = response.json()["status_code"] == "FINISHED"
+                if not finished:
+                    self.logger.info(f"Waiting {sleep_seconds} seconds for container {creation_id} to upload")
+                    await asyncio.sleep(sleep_seconds)
+                    sleep_seconds += sleep_seconds
 
 
-    def _publish_media(self, creation_id: str, account: InstagramAccount) -> str:
+    async def _publish_media(self, creation_id: str, account: InstagramAccount) -> str:
         url = f"{self.BASE_URL}/{account.instagram_id}/media_publish"
 
         payload = {
             "creation_id": creation_id,
             "access_token": account.access_token
         }
+        async with httpx.AsyncClient() as client:
+            response = await client.post(url, data=payload)
+            response.raise_for_status()
 
-        response = requests.post(url, data=payload)
-        response.raise_for_status()
-
-        return response.json()["id"]
+            return response.json()["id"]
