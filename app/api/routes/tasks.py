@@ -18,6 +18,7 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
       file: UploadFile = File(...),
       caption: str = Form(...),
       selected_folder_id: int = Form(...),
+      is_test_mode: bool = Form(...),
       db: Session = Depends(get_db),
   ):
       temp_path = f"/shared/{uuid.uuid4()}.mp4"
@@ -30,6 +31,7 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
       task.status = TaskStatus.pending
       task.file_path = temp_path
       task.caption = caption
+      task.is_test_mode = is_test_mode
 
       db.add(task)
       db.commit()

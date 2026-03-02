@@ -72,8 +72,12 @@ class InstagramGraphApiClient(InstagramPublisher):
             "media_type": "REELS",
             "video_url": reel.video_url,
             "caption": reel.caption,
-            "access_token": account.access_token
+            "access_token": account.access_token,
         }
+        if reel.is_trial:
+            payload["trial_params"] = {
+                "graduation_strategy": "MANUAL"
+            }
 
         if reel.thumbnail_url:
             payload["thumb_offset"] = 0  # можно расширить

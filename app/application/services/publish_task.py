@@ -39,7 +39,7 @@ class PublishVideoTask:
 
       print(f"Urls of videos in s3: {urls}")
 
-      reels = [Reel(url, caption) for url in urls]
+      reels = [Reel(url, caption, is_trial=True if task.is_test_mode else False) for url in urls]
 
       task.stage = TaskStage.uploading
       db.commit()

@@ -1142,7 +1142,7 @@
         <div class="mode-toggle-wrap">
           <label class="mode-toggle-label active" id="labelFeed" for="isStoryToggle">Основная лента</label>
           <label class="toggle-switch">
-            <input type="checkbox" id="isStoryToggle" name="is_story" onchange="onModeToggle(this)">
+            <input type="checkbox" id="isStoryToggle" name="is_test_mode" onchange="onTestToggle(this)">
             <div class="toggle-track"></div>
           </label>
           <label class="mode-toggle-label" id="labelStory" for="isStoryToggle">Пробный режим</label>
@@ -1724,10 +1724,10 @@
   /* ══════════════════════════════════════
      Тоггл: основная лента / пробный режим
   ══════════════════════════════════════ */
-  function onModeToggle(checkbox) {
-    const isStory = checkbox.checked;
-    document.getElementById('labelFeed').classList.toggle('active', !isStory);
-    document.getElementById('labelStory').classList.toggle('active', isStory);
+  function onTestToggle(checkbox) {
+    const isTestMode = checkbox.checked;
+    document.getElementById('labelFeed').classList.toggle('active', !isTestMode);
+    document.getElementById('labelStory').classList.toggle('active', isTestMode);
   }
 
   /* ══════════════════════════════════════

@@ -8,6 +8,7 @@ class Reel:
     video_url: str
     caption: str
     thumbnail_url: Optional[str] = None
+    is_trial: Optional[bool] = False
 
 @dataclass
 class GroupType(Enum):
