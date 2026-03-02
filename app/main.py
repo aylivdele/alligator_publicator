@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI
 
 from app import config
@@ -14,6 +16,7 @@ def create_app() -> FastAPI:
     generator = FFmpegUniqueReelGenerator()
     uniqalizer = ReelsUniqalizerService(generator, storage)
     graph_api = InstagramGraphApiClient(settings.GRAPH_API_CLIENT_ID, settings.GRAPH_API_CLIENT_SECRET, settings.GRAPH_API_REDIRECT_URI)
+    logging.basicConfig(level=logging.INFO)
 
     app = FastAPI(title="Instagram Publisher API")
 

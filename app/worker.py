@@ -34,6 +34,8 @@ def fetch_task(db: Session):
 
 def run_worker():
     logger = logging.getLogger(__name__)
+    logging.basicConfig(level=logging.INFO)
+
     logger.info("Worker started")
     settings = config.settings
     storage = S3Storage(settings.STORAGE_ENDPOINT, settings.STORAGE_ACCESS_KEY, settings.STORAGE_SECRET_KEY, settings.STORAGE_BUCKET)

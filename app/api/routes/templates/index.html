@@ -1396,6 +1396,7 @@
     const caption = document.getElementById('captionInput').value.trim();
     const folderId = document.getElementById('publishFolderSelect').value;
     const statusEl = document.getElementById('publishStatus');
+    const isTestMode = document.getElementById('isStoryToggle').checked;
 
     if (!fileInput.files.length) {
       showPublishStatus('Выбери видеофайл', 'err');
@@ -1410,6 +1411,7 @@
     formData.append('file', fileInput.files[0]);
     formData.append('caption', caption);
     formData.append('selected_folder_id', folderId);
+    formData.append('is_test_mode', isTestMode)
 
     const btn = document.getElementById('btnPublish');
     btn.disabled = true;
@@ -1724,8 +1726,9 @@
   /* ══════════════════════════════════════
      Тоггл: основная лента / пробный режим
   ══════════════════════════════════════ */
+  let isTestMode = false;
   function onTestToggle(checkbox) {
-    const isTestMode = checkbox.checked;
+    isTestMode = checkbox.checked;
     document.getElementById('labelFeed').classList.toggle('active', !isTestMode);
     document.getElementById('labelStory').classList.toggle('active', isTestMode);
   }
