@@ -2,7 +2,7 @@ from datetime import datetime
 import enum
 import uuid
 
-from sqlalchemy import UUID, Column, Enum, Integer, String, DateTime, ForeignKey, Text
+from sqlalchemy import UUID, Boolean, Column, Enum, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.sql import func
 
@@ -54,6 +54,7 @@ class PublishTask(Base):
     folder_id = Column(Integer, ForeignKey("folders.id"), nullable=False)
     file_path = Column(Text)
     caption = Column(Text)
+    is_test_mode = Column(Boolean, default=False, nullable=True)
 
     status = Column(Enum(TaskStatus, name="task_status_enum"), default=TaskStatus.pending, nullable=False)
     stage = Column(Enum(TaskStage, name="task_stage_enum"), nullable=True)

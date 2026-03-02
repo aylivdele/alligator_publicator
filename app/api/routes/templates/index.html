@@ -875,6 +875,169 @@
   .btn-publish:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; transform: none; }
   .btn-publish:active:not(:disabled) { transform: translateY(1px); }
 
+  /* ── is_story toggle ── */
+  .mode-toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .mode-toggle-label {
+    font-size: 11px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    transition: color 0.15s;
+  }
+  .mode-toggle-label.active { color: var(--accent); font-weight: 500; }
+
+  .toggle-switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+  }
+  .toggle-switch input { display: none; }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 11px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle-track::after {
+    content: '';
+    position: absolute;
+    top: 3px; left: 3px;
+    width: 16px; height: 16px;
+    background: #fff;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+    transition: transform 0.2s;
+  }
+  .toggle-switch input:checked + .toggle-track { background: var(--accent); }
+  .toggle-switch input:checked + .toggle-track::after { transform: translateX(18px); }
+
+  /* ══════════════════════════════════════
+     TASKS / HISTORY SECTION
+  ══════════════════════════════════════ */
+  .tasks-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+    margin-top: 28px;
+  }
+
+  .tasks-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .tasks-title {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+  }
+
+  .tasks-header-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .btn-refresh {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-secondary);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-refresh:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-refresh svg { transition: transform 0.4s; }
+  .btn-refresh.spinning svg { animation: spin 0.7s linear infinite; }
+
+  /* Status & stage badges */
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+  .status-badge::before {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+    flex-shrink: 0;
+  }
+  .status-badge.pending    { background: var(--surface-2); color: var(--muted); border: 1px solid var(--border); }
+  .status-badge.processing { background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(91,106,245,.2); }
+  .status-badge.completed  { background: var(--success-soft); color: var(--success); border: 1px solid rgba(61,191,124,.2); }
+  .status-badge.failed     { background: var(--error-soft); color: var(--error); border: 1px solid rgba(232,69,69,.2); }
+
+  /* Animated dot for processing */
+  .status-badge.processing::before { animation: pulse-dot 1.2s ease-in-out infinite; }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  .stage-text {
+    font-size: 11px;
+    color: var(--text-secondary);
+  }
+
+  .mode-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: 10px;
+    border-radius: 20px;
+    letter-spacing: 0.05em;
+  }
+  .mode-pill.feed   { background: var(--accent-soft); color: var(--accent); }
+  .mode-pill.story  { background: #FFF3E0; color: #E08B00; border: 1px solid rgba(224,139,0,.2); }
+
+  .error-cell {
+    font-size: 11px;
+    color: var(--error);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .task-id {
+    font-size: 10px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+  }
+
   /* Publish status toast */
   .publish-status {
     font-size: 12px;
@@ -975,6 +1138,16 @@
           </select>
         </div>
 
+        <!-- Тоггл режима -->
+        <div class="mode-toggle-wrap">
+          <label class="mode-toggle-label active" id="labelFeed" for="isStoryToggle">Основная лента</label>
+          <label class="toggle-switch">
+            <input type="checkbox" id="isStoryToggle" name="is_story" onchange="onModeToggle(this)">
+            <div class="toggle-track"></div>
+          </label>
+          <label class="mode-toggle-label" id="labelStory" for="isStoryToggle">Пробный режим</label>
+        </div>
+
         <!-- Статус -->
         <div class="publish-status" id="publishStatus"></div>
 
@@ -1008,6 +1181,28 @@
       <div class="loading">
         <div class="spinner"></div>
         Загрузка аккаунтов…
+      </div>
+    </div>
+  </div>
+  <!-- ── Статус и история выкладки ── -->
+  <div class="tasks-section">
+    <div class="tasks-header">
+      <div class="tasks-title">Статус выкладки</div>
+      <div class="tasks-header-right">
+        <div class="count-badge" id="tasksCount">—</div>
+        <button class="btn-refresh" id="btnRefreshTasks" onclick="loadTasks(true)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          Обновить
+        </button>
+      </div>
+    </div>
+    <div id="tasksBody">
+      <div class="loading">
+        <div class="spinner"></div>
+        Загрузка задач…
       </div>
     </div>
   </div>
@@ -1526,8 +1721,150 @@
 
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
+  /* ══════════════════════════════════════
+     Тоггл: основная лента / пробный режим
+  ══════════════════════════════════════ */
+  function onModeToggle(checkbox) {
+    const isStory = checkbox.checked;
+    document.getElementById('labelFeed').classList.toggle('active', !isStory);
+    document.getElementById('labelStory').classList.toggle('active', isStory);
+  }
+
+  /* ══════════════════════════════════════
+     Задачи публикации
+  ══════════════════════════════════════ */
+  let taskPollTimer = null;
+
+  const STATUS_LABELS = {
+    pending:    'В очереди',
+    processing: 'В процессе',
+    completed:  'Готово',
+    failed:     'Ошибка',
+  };
+
+  const STAGE_LABELS = {
+    writing:    'Сохранение',
+    processing: 'Обработка',
+    uploading:  'Загрузка',
+    done:       'Завершено',
+  };
+
+  function fmtDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleString('ru-RU', {
+      day: '2-digit', month: '2-digit', year: '2-digit',
+      hour: '2-digit', minute: '2-digit',
+    });
+  }
+
+  async function loadTasks(manual = false) {
+    if (manual) {
+      const btn = document.getElementById('btnRefreshTasks');
+      btn.classList.add('spinning');
+      setTimeout(() => btn.classList.remove('spinning'), 600);
+    }
+
+    try {
+      const res = await fetch('/api/tasks');
+      const tasks = await res.json();
+      renderTasks(tasks);
+      scheduleTaskPoll(tasks);
+    } catch {
+      document.getElementById('tasksBody').innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <circle cx="12" cy="16" r="1" fill="currentColor"/>
+            </svg>
+          </div>
+          <div>Не удалось загрузить задачи</div>
+        </div>`;
+    }
+  }
+
+  function renderTasks(tasks) {
+    document.getElementById('tasksCount').textContent = tasks.length;
+    const body = document.getElementById('tasksBody');
+
+    if (!tasks.length) {
+      body.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+            </svg>
+          </div>
+          <div>Нет задач публикации</div>
+          <p>Используй форму выше, чтобы поставить видео в очередь</p>
+        </div>`;
+      return;
+    }
+
+    const rows = tasks.map(t => {
+      const statusCls = t.status || 'pending';
+      const statusLabel = STATUS_LABELS[t.status] || t.status || '—';
+      const stageLabel = t.stage ? (STAGE_LABELS[t.stage] || t.stage) : '—';
+      const modePill = t.is_test_mode
+        ? `<span class="mode-pill story">Пробный</span>`
+        : `<span class="mode-pill feed">Лента</span>`;
+      const folderPill = t.folder_name
+        ? `<span class="folder-pill">${FOLDER_ICON}${escHtml(t.folder_name)}</span>`
+        : `<span class="folder-pill no-folder">—</span>`;
+      const shortId = t.id ? t.id.slice(0, 8) : '—';
+      const errorCell = t.error
+        ? `<span class="error-cell" title="${escHtml(t.error)}">${escHtml(t.error)}</span>`
+        : `<span class="cell-muted">—</span>`;
+
+      return `
+        <tr>
+          <td><span class="task-id">${shortId}…</span></td>
+          <td><span class="cell-muted">${fmtDate(t.created_at)}</span></td>
+          <td>${folderPill}</td>
+          <td>${modePill}</td>
+          <td><span class="status-badge ${statusCls}">${statusLabel}</span></td>
+          <td><span class="stage-text">${stageLabel}</span></td>
+          <td><span class="cell-muted">${escHtml(t.locked_by || '—')}</span></td>
+          <td>${errorCell}</td>
+        </tr>`;
+    }).join('');
+
+    body.innerHTML = `
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Дата</th>
+            <th>Папка</th>
+            <th>Режим</th>
+            <th>Статус</th>
+            <th>Этап</th>
+            <th>Агент</th>
+            <th>Ошибка</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+  }
+
+  /* Авто-опрос: продолжаем пока есть активные задачи */
+  function scheduleTaskPoll(tasks) {
+    const hasActive = tasks.some(t => t.status === 'pending' || t.status === 'processing');
+
+    if (hasActive) {
+      clearTimeout(taskPollTimer);
+      taskPollTimer = setTimeout(() => loadTasks(false), 5000);
+    } else {
+      clearTimeout(taskPollTimer);
+    }
+  }
+
   /* ── Init ── */
   loadAccounts();
+  loadTasks();
 </script>
 
 </body>
