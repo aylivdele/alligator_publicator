@@ -17,7 +17,7 @@ class FFmpegUniqueReelGenerator(UniqueReelGenerator):
             speed_variation = random.uniform(0.99, 1.01)
 
             vf = (
-                f"scale=iw*{scale_variation}:ih*{scale_variation}:flags=fast_bilinear,"
+                f"scale=trunc(iw*{scale_variation}/2)*2:trunc(ih*{scale_variation}/2)*2:flags=fast_bilinear,"
                 f"setpts={1/speed_variation}*PTS"
             )
 
