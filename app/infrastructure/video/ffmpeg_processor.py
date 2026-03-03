@@ -13,8 +13,8 @@ class FFmpegUniqueReelGenerator(UniqueReelGenerator):
         for _ in range(copies):
             output_path = f"/tmp/{uuid.uuid4()}.mp4"
 
-            scale_variation = random.uniform(1.01, 1.05)
-            speed_variation = random.uniform(0.99, 1.01)
+            scale_variation = random.uniform(1.05, 1.1)
+            speed_variation = random.uniform(0.95, 1.05)
 
             vf = (
                 f"scale=trunc(iw*{scale_variation}/2)*2:trunc(ih*{scale_variation}/2)*2:flags=fast_bilinear,"
