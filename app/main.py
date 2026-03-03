@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from starlette.middleware.sessions import SessionMiddleware
 
 from app import config
-from app.api.routes import accounts, auth, folders, tasks, user_auth
+from app.api.routes import accounts, auth, folders, tasks, user_auth, views
 from app.api.routes.admin import create_admin_routes
 from app.application.services.uniqalize_reel import ReelsUniqalizerService
 from app.domain.models import Base, User, UserRole
@@ -33,6 +33,7 @@ def create_app() -> FastAPI:
     app.include_router(folders.router, prefix="/api")
     app.include_router(accounts.router, prefix="/api")
     app.include_router(tasks.create_publish_routes(uniqalizer, graph_api), prefix="/api")
-    app.include_router(auth.create_auth_routes(graph_api))
+    app.include_router(views.create_views_router(settings), prefix="/api")
+    app.include_router(auth.create_auth_routes(graph_api, settings))
 
     return app

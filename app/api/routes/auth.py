@@ -14,12 +14,13 @@ from app.infrastructure.database.db import get_db
 from app.infrastructure.instagram.graph_api_client import InstagramGraphApiClient
 
 
-def create_auth_routes(graph_api: InstagramGraphApiClient):
+def create_auth_routes(graph_api: InstagramGraphApiClient, settings: Optional[config.Settings] = None):
     router = APIRouter()
     module_path = os.path.dirname(os.path.abspath(__file__))
     template_dir = os.path.join(module_path, 'templates')
     templates = Jinja2Templates(directory=template_dir)
-    settings = config.settings
+    if settings is None:
+        settings = config.settings
 
     def get_auth_url(folder_id: Optional[int] = None):
         state = str(folder_id) if folder_id else "0"
@@ -31,7 +32,11 @@ def create_auth_routes(graph_api: InstagramGraphApiClient):
     async def index(request: Request, current_user: Optional[User] = Depends(get_current_user)):
         if current_user is None:
             return RedirectResponse("/login", status_code=302)
-        return templates.TemplateResponse("index.html", {"request": request})
+        return templates.TemplateResponse("index.html", {
+            "request": request,
+            "views_refresh_minutes": settings.VIEWS_REFRESH_MINUTES,
+            "views_max_age_hours": settings.VIEWS_MAX_AGE_HOURS,
+        })
 
 
     @router.get("/start-auth")

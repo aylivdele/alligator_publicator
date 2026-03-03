@@ -51,6 +51,10 @@ class TaskAccountResult(Base):
     account_id = Column(Integer, ForeignKey("instagram_accounts.id"), nullable=True)
     status = Column(Enum(AccountResultStatus, name="account_result_status_enum"), nullable=False)
     error = Column(Text, nullable=True)
+    media_id = Column(String, nullable=True)
+    permalink = Column(String, nullable=True)
+    view_count = Column(Integer, nullable=True)
+    views_updated_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     task = relationship("PublishTask", back_populates="account_results")

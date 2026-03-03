@@ -1194,6 +1194,28 @@
       </div>
     </div>
   </div>
+
+  <!-- ── Просмотры рилсов ── -->
+  <div class="tasks-section" id="viewsSection" style="margin-top:20px">
+    <div class="tasks-header">
+      <div class="tasks-title">Просмотры рилсов <span id="viewsAgeBadge" style="font-family:var(--font-mono);font-size:11px;color:var(--muted);font-weight:400">(последние {{ views_max_age_hours }} ч.)</span></div>
+      <div class="tasks-header-right">
+        <button class="btn-refresh" onclick="loadViews()">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          Обновить
+        </button>
+      </div>
+    </div>
+    <div id="viewsBody">
+      <div class="loading">
+        <div class="spinner"></div>
+        Загрузка просмотров…
+      </div>
+    </div>
+  </div>
 </main>
 
 <script>
@@ -1665,6 +1687,77 @@
     }
   }
 
+  /* ── Просмотры рилсов ── */
+  const VIEWS_REFRESH_MS = {{ views_refresh_minutes }} * 60 * 1000;
+
+  async function loadViews() {
+    try {
+      const res = await fetch('/api/views');
+      const data = await res.json();
+      renderViews(data);
+    } catch {
+      document.getElementById('viewsBody').innerHTML =
+        `<div class="empty-state"><div>Ошибка загрузки просмотров</div></div>`;
+    }
+  }
+
+  function renderViews(tasks) {
+    const body = document.getElementById('viewsBody');
+    if (!tasks.length) {
+      body.innerHTML = `<div class="empty-state"><div class="empty-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+        </svg></div><div>Нет рилсов за последние {{ views_max_age_hours }} ч.</div></p></div>`;
+      return;
+    }
+
+    const rows = [];
+    for (const t of tasks) {
+      const date = fmtDate(t.created_at);
+      const modePill = t.is_test_mode
+        ? `<span class="mode-pill story">Пробный</span>`
+        : `<span class="mode-pill feed">Лента</span>`;
+      const folderPill = t.folder_name
+        ? `<span class="folder-pill">${FOLDER_ICON}${escHtml(t.folder_name)}</span>`
+        : `<span class="folder-pill no-folder">—</span>`;
+
+      for (const a of t.accounts) {
+        const views = a.view_count != null
+          ? `<strong>${a.view_count.toLocaleString('ru-RU')}</strong>`
+          : `<span class="cell-muted">—</span>`;
+        const updated = a.views_updated_at
+          ? `<span class="cell-muted" style="font-size:11px">${fmtDate(a.views_updated_at)}</span>`
+          : `<span class="cell-muted">—</span>`;
+        const link = a.permalink
+          ? `<a href="${escHtml(a.permalink)}" target="_blank" rel="noopener" style="color:var(--accent);text-decoration:none">↗</a>`
+          : `<span class="cell-muted">—</span>`;
+        const accountLabel = a.username
+          ? `@${escHtml(a.username)}`
+          : escHtml(a.instagram_id || '—');
+
+        rows.push(`<tr>
+          <td><span class="cell-muted">${date}</span></td>
+          <td>${folderPill}</td>
+          <td>${modePill}</td>
+          <td><span class="task-id">${accountLabel}</span></td>
+          <td>${views}</td>
+          <td>${updated}</td>
+          <td>${link}</td>
+        </tr>`);
+      }
+    }
+
+    body.innerHTML = `<table>
+      <thead><tr>
+        <th>Дата</th><th>Папка</th><th>Режим</th><th>Аккаунт</th>
+        <th>Просмотры</th><th>Обновлено</th><th>Ссылка</th>
+      </tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table>`;
+  }
+
+  setInterval(loadViews, VIEWS_REFRESH_MS);
+
   /* ── Init ── */
   (async () => {
     let me;
@@ -1696,6 +1789,7 @@
     }
 
     loadTasks();
+    loadViews();
   })();
 </script>
 

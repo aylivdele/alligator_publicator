@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import Optional
 
 import httpx
 from app.domain.models import InstagramAccount
@@ -63,6 +64,32 @@ class InstagramGraphApiClient(InstagramPublisher):
             if "access_token" not in data:
                 raise Exception(data.get("error", {}).get("message", str(data)))
             return data["access_token"], data["expires_in"]
+
+    async def get_reel_views(self, media_id: str, access_token: str) -> Optional[int]:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    f"{self.BASE_URL}/{media_id}/insights",
+                    params={"metric": "plays", "access_token": access_token},
+                )
+                data = resp.json()
+                for item in data.get("data", []):
+                    if item.get("name") == "plays":
+                        return item["values"][0]["value"]
+            return None
+        except Exception:
+            return None
+
+    async def get_reel_permalink(self, media_id: str, access_token: str) -> Optional[str]:
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    f"{self.BASE_URL}/{media_id}",
+                    params={"fields": "permalink", "access_token": access_token},
+                )
+                return resp.json().get("permalink")
+        except Exception:
+            return None
 
     async def get_account_info(self, long_token: str):
         async with httpx.AsyncClient() as client:

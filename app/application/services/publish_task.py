@@ -69,6 +69,7 @@ class PublishVideoTask:
                   task_id=task.id,
                   account_id=account.id,
                   status=AccountResultStatus.success,
+                  media_id=result,
               )
           db.add(ar)
 

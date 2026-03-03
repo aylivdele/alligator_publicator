@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     ADMIN_USERNAME: str = "admin"
     ADMIN_PASSWORD: str = "admin"
 
+    VIEWS_MAX_AGE_HOURS: int = 48
+    VIEWS_REFRESH_MINUTES: int = 30
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore"

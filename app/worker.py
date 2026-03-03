@@ -1,14 +1,16 @@
+import asyncio
 import logging
+import threading
 import time
 import socket
-from datetime import datetime
-from sqlalchemy import select, update
+from datetime import datetime, timedelta
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app import config
 from app.application.services.publish_task import PublishVideoTask
 from app.application.services.uniqalize_reel import ReelsUniqalizerService
-from app.domain.models import PublishTask, TaskStatus
+from app.domain.models import PublishTask, TaskAccountResult, TaskStatus
 from app.infrastructure.database.db import SessionLocal, get_db
 from app.infrastructure.instagram.graph_api_client import InstagramGraphApiClient
 from app.infrastructure.storage.s3 import S3Storage
@@ -32,6 +34,47 @@ def fetch_task(db: Session):
 
     return task
 
+
+def run_views_updater(graph_api: InstagramGraphApiClient, settings: config.Settings):
+    logger = logging.getLogger(__name__ + ".views")
+    while True:
+        time.sleep(settings.VIEWS_REFRESH_MINUTES * 60)
+        db = SessionLocal()
+        try:
+            cutoff = datetime.utcnow() - timedelta(hours=settings.VIEWS_MAX_AGE_HOURS)
+            results = (
+                db.query(TaskAccountResult)
+                .join(PublishTask, PublishTask.id == TaskAccountResult.task_id)
+                .filter(
+                    PublishTask.created_at >= cutoff,
+                    TaskAccountResult.media_id.isnot(None),
+                )
+                .all()
+            )
+            for ar in results:
+                account = ar.account
+                if account is None:
+                    continue
+                try:
+                    token = str(account.access_token)
+                    mid = str(ar.media_id)
+                    if ar.permalink is None:
+                        link = asyncio.run(graph_api.get_reel_permalink(mid, token))
+                        if link:
+                            ar.permalink = link
+                    views = asyncio.run(graph_api.get_reel_views(mid, token))
+                    if views is not None:
+                        ar.view_count = views
+                        ar.views_updated_at = datetime.utcnow()
+                except Exception:
+                    pass
+            db.commit()
+        except Exception as e:
+            logger.exception("Views updater error: %s", e)
+        finally:
+            db.close()
+
+
 def run_worker():
     logger = logging.getLogger(__name__)
     logging.basicConfig(level=logging.INFO)
@@ -43,9 +86,11 @@ def run_worker():
     uniqalizer = ReelsUniqalizerService(generator, storage)
     graph_api = InstagramGraphApiClient(settings.GRAPH_API_CLIENT_ID, settings.GRAPH_API_CLIENT_SECRET, settings.GRAPH_API_REDIRECT_URI)
 
+    threading.Thread(target=run_views_updater, args=(graph_api, settings), daemon=True).start()
+
     while True:
         db = SessionLocal()
-            
+
         try:
             task = fetch_task(db)
 
