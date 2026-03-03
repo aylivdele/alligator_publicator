@@ -426,10 +426,35 @@ function renderFolders() {
     return;
   }
   tbody.innerHTML = allFolders.map(f => `<tr>
-    <td>${escHtml(f.name)}</td>
+    <td>
+      <div class="inline-form">
+        <input id="fname-${f.id}" value="${escHtml(f.name)}" style="width:200px" />
+        <button class="btn-secondary btn-sm" onclick="renameFolder(${f.id})">Сохранить</button>
+      </div>
+    </td>
     <td style="color:var(--muted)">${f.count}</td>
-    <td></td>
+    <td><button class="btn-danger btn-sm" onclick="deleteFolder(${f.id})">Удалить</button></td>
   </tr>`).join('');
+}
+
+async function renameFolder(folderId) {
+  const input = document.getElementById(`fname-${folderId}`);
+  const name = input.value.trim();
+  if (!name) { showToast('Введите название', false); return; }
+  try {
+    await api('PATCH', `/api/folders/${folderId}`, { name });
+    showToast('Название обновлено');
+    await loadFolders();
+  } catch (err) { showToast(err.message, false); }
+}
+
+async function deleteFolder(folderId) {
+  if (!confirm('Удалить папку? Завершённые выкладки будут удалены, аккаунты отключены от папки. Нельзя удалить, если есть активные выкладки.')) return;
+  try {
+    await api('DELETE', `/api/folders/${folderId}`);
+    showToast('Папка удалена');
+    await loadFolders();
+  } catch (err) { showToast(err.message, false); }
 }
 
 async function createFolder() {
