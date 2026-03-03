@@ -52,6 +52,8 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
     @router.get("/tasks/{task_id}")
     def get_task(task_id: uuid.UUID, db: Session = Depends(get_db), _: User = Depends(require_auth)):
         task = db.get(PublishTask, task_id)
+        if task is None:
+            raise HTTPException(status_code=404, detail="Задача не найдена")
         return {
             "status": task.status,
             "stage": task.stage,

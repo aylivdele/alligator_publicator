@@ -29,7 +29,7 @@ async def login(
     db: Session = Depends(get_db),
 ):
     user = db.query(User).filter_by(username=username).first()
-    if not user or not pwd_context.verify(password, user.password_hash):
+    if not user or not pwd_context.verify(password, str(user.password_hash)):
         return templates.TemplateResponse(
             "login.html", {"request": request, "error": "Неверный логин или пароль"}, status_code=401
         )

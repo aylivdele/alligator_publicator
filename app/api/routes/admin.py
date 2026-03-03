@@ -168,7 +168,7 @@ def create_admin_routes(graph_api: InstagramGraphApiClient) -> APIRouter:
         if not account:
             raise HTTPException(status_code=404, detail="Аккаунт не найден")
         try:
-            data = await graph_api.get_account_info(account.access_token)
+            data = await graph_api.get_account_info(str(account.access_token))
             if "error" in data:
                 return {"valid": False, "error": data["error"].get("message", "Token invalid")}
             return {"valid": True, "username": data.get("username")}
