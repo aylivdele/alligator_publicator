@@ -15,6 +15,10 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str
 
+    SECRET_KEY: str = "change-me-in-production"
+    ADMIN_USERNAME: str = "admin"
+    ADMIN_PASSWORD: str = "admin"
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore"

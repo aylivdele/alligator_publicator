@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.application.services.uniqalize_reel import ReelsUniqalizerService
 from app.domain.entities import Reel
-from app.domain.models import Folder, InstagramAccount, PublishTask, TaskStage, TaskStatus
+from app.domain.models import AccountResultStatus, Folder, InstagramAccount, PublishTask, TaskAccountResult, TaskStage, TaskStatus
 from app.domain.repositories import InstagramPublisher
 from app.infrastructure.database.db import get_db
 
@@ -54,10 +54,23 @@ class PublishVideoTask:
 
         return await asyncio.gather(*tasks, return_exceptions=True) 
             
-      results = asyncio.run(run_tasks()) 
-      for result in results:
-            if isinstance(result, Exception):
-                self.logger.exception("Publish failed", exc_info=result)
+      results = asyncio.run(run_tasks())
+      for account, result in zip(accounts, results):
+          if isinstance(result, Exception):
+              self.logger.exception("Publish failed for account %s", account.instagram_id, exc_info=result)
+              ar = TaskAccountResult(
+                  task_id=task.id,
+                  account_id=account.id,
+                  status=AccountResultStatus.failed,
+                  error=str(result),
+              )
+          else:
+              ar = TaskAccountResult(
+                  task_id=task.id,
+                  account_id=account.id,
+                  status=AccountResultStatus.success,
+              )
+          db.add(ar)
 
       task.status = TaskStatus.completed
       task.stage = TaskStage.done

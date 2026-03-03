@@ -8,14 +8,15 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app import config
-from app.domain.models import Folder, InstagramAccount
+from app.api.deps import get_current_user, require_admin
+from app.domain.models import Folder, InstagramAccount, User
 from app.infrastructure.database.db import get_db
 from app.infrastructure.instagram.graph_api_client import InstagramGraphApiClient
 
 
 def create_auth_routes(graph_api: InstagramGraphApiClient):
     router = APIRouter()
-    module_path = os.path.dirname(os.path.abspath(__file__)) 
+    module_path = os.path.dirname(os.path.abspath(__file__))
     template_dir = os.path.join(module_path, 'templates')
     templates = Jinja2Templates(directory=template_dir)
     settings = config.settings
@@ -27,12 +28,14 @@ def create_auth_routes(graph_api: InstagramGraphApiClient):
         )
 
     @router.get("/", response_class=HTMLResponse)
-    async def index(request: Request):
+    async def index(request: Request, current_user: Optional[User] = Depends(get_current_user)):
+        if current_user is None:
+            return RedirectResponse("/login", status_code=302)
         return templates.TemplateResponse("index.html", {"request": request})
 
 
     @router.get("/start-auth")
-    async def start_auth(folder_id: Optional[int] = None):
+    async def start_auth(folder_id: Optional[int] = None, _: User = Depends(require_admin)):
         url = get_auth_url(folder_id)
         return RedirectResponse(url=url)
 

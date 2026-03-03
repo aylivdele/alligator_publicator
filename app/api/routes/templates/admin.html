@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Админ-панель — Alligator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Unbounded:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent: #5B6AF5;
+      --accent-hover: #4a59e0;
+      --bg: #0e0f14;
+      --surface: #16181f;
+      --surface2: #1c1f2a;
+      --border: #2a2d3a;
+      --text: #e8e9f0;
+      --muted: #6b7080;
+      --success: #3ecf8e;
+      --error: #f04c4c;
+      --warn: #f0a04c;
+      --radius: 12px;
+    }
+
+    body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky; top: 0; z-index: 100;
+    }
+    .logo { font-family: 'Unbounded', sans-serif; font-size: 18px; font-weight: 700; color: var(--accent); }
+    .logo span { color: var(--muted); font-size: 12px; font-family: 'DM Mono', monospace; font-weight: 400; margin-left: 10px; }
+    .header-right { display: flex; align-items: center; gap: 16px; }
+    .header-right a { color: var(--muted); text-decoration: none; font-size: 13px; }
+    .header-right a:hover { color: var(--text); }
+
+    nav {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 32px;
+      display: flex; gap: 0;
+    }
+    .nav-tab {
+      padding: 14px 20px;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      font-size: 13px;
+      transition: color 0.2s, border-color 0.2s;
+    }
+    .nav-tab:hover { color: var(--text); }
+    .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    main { max-width: 1200px; margin: 0 auto; padding: 32px; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    h2 { font-family: 'Unbounded', sans-serif; font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .form-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+    input, select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: var(--accent); }
+
+    button {
+      background: var(--accent);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-family: 'DM Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 9px 16px;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+    button:hover { background: var(--accent-hover); }
+    button.btn-danger { background: transparent; border: 1px solid var(--error); color: var(--error); }
+    button.btn-danger:hover { background: rgba(240,76,76,0.1); }
+    button.btn-secondary { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    button.btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    button.btn-sm { padding: 6px 10px; font-size: 12px; }
+    button.btn-warn { background: transparent; border: 1px solid var(--warn); color: var(--warn); }
+    button.btn-warn:hover { background: rgba(240,160,76,0.1); }
+
+    table { width: 100%; border-collapse: collapse; }
+    th { font-size: 11px; color: var(--muted); text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.04em; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+    .badge-admin { background: rgba(91,106,245,0.15); color: var(--accent); }
+    .badge-employee { background: rgba(107,112,128,0.15); color: var(--muted); }
+    .badge-success { background: rgba(62,207,142,0.15); color: var(--success); }
+    .badge-error { background: rgba(240,76,76,0.15); color: var(--error); }
+    .badge-pending { background: rgba(107,112,128,0.15); color: var(--muted); }
+    .badge-processing { background: rgba(91,106,245,0.15); color: var(--accent); }
+    .badge-completed { background: rgba(62,207,142,0.15); color: var(--success); }
+    .badge-failed { background: rgba(240,76,76,0.15); color: var(--error); }
+    .badge-valid { background: rgba(62,207,142,0.15); color: var(--success); }
+    .badge-invalid { background: rgba(240,76,76,0.15); color: var(--error); }
+
+    .folder-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+    .folder-pill {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px 10px;
+      font-size: 11px;
+      display: flex; align-items: center; gap: 4px;
+    }
+    .folder-pill button {
+      background: none; border: none; color: var(--muted); padding: 0; font-size: 13px; line-height: 1; cursor: pointer;
+    }
+    .folder-pill button:hover { color: var(--error); background: none; }
+
+    .filter-bar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; }
+
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .dot-valid { background: var(--success); }
+    .dot-invalid { background: var(--error); }
+    .dot-unknown { background: var(--muted); }
+
+    .task-accounts { margin-top: 6px; }
+    .task-account-row { font-size: 12px; color: var(--muted); padding: 2px 0; }
+    .task-account-row .acc-status { margin-left: 8px; }
+
+    .empty-state { color: var(--muted); text-align: center; padding: 40px; }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px 18px;
+      font-size: 13px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 9999;
+      max-width: 340px;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.toast-ok { border-color: var(--success); color: var(--success); }
+    .toast.toast-err { border-color: var(--error); color: var(--error); }
+
+    .inline-form { display: flex; gap: 6px; align-items: center; }
+
+    details summary { cursor: pointer; color: var(--muted); font-size: 12px; }
+    details[open] summary { color: var(--text); }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Alligator <span>Админ-панель</span></div>
+  <div class="header-right">
+    <a href="/">← На главную</a>
+    <a href="/logout">Выйти</a>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-tab active" data-tab="users">Сотрудники</div>
+  <div class="nav-tab" data-tab="accounts">Аккаунты</div>
+  <div class="nav-tab" data-tab="tasks">Выкладки</div>
+</nav>
+
+<main>
+
+  <!-- ───── СОТРУДНИКИ ───── -->
+  <div class="section active" id="tab-users">
+    <h2>Сотрудники</h2>
+
+    <div class="card">
+      <h3 style="font-size:13px;margin-bottom:14px;color:var(--muted)">Добавить сотрудника</h3>
+      <form id="form-create-user">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Логин</label>
+            <input name="username" placeholder="username" required />
+          </div>
+          <div class="form-group">
+            <label>Пароль</label>
+            <input name="password" type="password" placeholder="••••••" required />
+          </div>
+          <div class="form-group">
+            <label>Имя / подпись</label>
+            <input name="display_name" placeholder="Иван Иванов" />
+          </div>
+          <div class="form-group">
+            <label>Роль</label>
+            <select name="role">
+              <option value="employee">Сотрудник</option>
+              <option value="admin">Админ</option>
+            </select>
+          </div>
+          <button type="submit">Добавить</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card" style="padding:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Логин</th>
+            <th>Имя / подпись</th>
+            <th>Роль</th>
+            <th>Доступ к папкам</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="users-table-body">
+          <tr><td colspan="5" class="empty-state">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ───── АККАУНТЫ ───── -->
+  <div class="section" id="tab-accounts">
+    <h2>Подключённые аккаунты Instagram</h2>
+
+    <div class="filter-bar">
+      <label style="color:var(--muted);font-size:12px">Папка:</label>
+      <select id="accounts-folder-filter">
+        <option value="">Все папки</option>
+      </select>
+    </div>
+
+    <div class="card" style="padding:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Instagram ID</th>
+            <th>Username</th>
+            <th>Папка</th>
+            <th>Статус токена</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="accounts-table-body">
+          <tr><td colspan="5" class="empty-state">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ───── ВЫКЛАДКИ ───── -->
+  <div class="section" id="tab-tasks">
+    <h2>История выкладок</h2>
+
+    <div class="card" style="padding:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Папка</th>
+            <th>Статус</th>
+            <th>Этап</th>
+            <th>Тест</th>
+            <th>Аккаунты</th>
+            <th>Ошибка</th>
+          </tr>
+        </thead>
+        <tbody id="tasks-table-body">
+          <tr><td colspan="7" class="empty-state">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+// ─── State ───────────────────────────────────────────────────────────────────
+let allFolders = [];
+let allUsers = [];
+
+// ─── Tabs ────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'accounts') loadAccounts();
+    if (tab.dataset.tab === 'tasks') loadTasks();
+    if (tab.dataset.tab === 'users') loadUsers();
+  });
+});
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+function showToast(msg, ok = true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + (ok ? 'toast-ok' : 'toast-err');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── API helpers ─────────────────────────────────────────────────────────────
+async function api(method, url, body = null) {
+  const opts = { method, headers: {} };
+  if (body instanceof FormData) {
+    opts.body = body;
+  } else if (body) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
+  const r = await fetch(url, opts);
+  if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || r.statusText); }
+  return r.json().catch(() => null);
+}
+
+// ─── Folders ─────────────────────────────────────────────────────────────────
+async function loadFolders() {
+  allFolders = await fetch('/api/folders').then(r => r.json()).catch(() => []);
+  const sel = document.getElementById('accounts-folder-filter');
+  sel.innerHTML = '<option value="">Все папки</option>';
+  allFolders.forEach(f => {
+    const o = document.createElement('option');
+    o.value = f.id; o.textContent = f.name;
+    sel.appendChild(o);
+  });
+}
+
+document.getElementById('accounts-folder-filter').addEventListener('change', loadAccounts);
+
+// ─── Users ───────────────────────────────────────────────────────────────────
+async function loadUsers() {
+  allUsers = await fetch('/admin/api/users').then(r => r.json()).catch(() => []);
+  renderUsers();
+}
+
+function renderUsers() {
+  const tbody = document.getElementById('users-table-body');
+  if (!allUsers.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Нет сотрудников</td></tr>'; return; }
+  tbody.innerHTML = allUsers.map(u => {
+    const folderPills = (u.folder_ids || []).map(fid => {
+      const f = allFolders.find(x => x.id === fid);
+      const name = f ? f.name : fid;
+      return `<span class="folder-pill">${name}<button onclick="revokeFolder(${u.id},${fid})" title="Убрать доступ">×</button></span>`;
+    }).join('');
+
+    const folderOptions = allFolders
+      .filter(f => !(u.folder_ids || []).includes(f.id))
+      .map(f => `<option value="${f.id}">${f.name}</option>`).join('');
+
+    return `<tr>
+      <td>${escHtml(u.username)}</td>
+      <td>
+        <div class="inline-form">
+          <input id="dn-${u.id}" value="${escHtml(u.display_name || '')}" style="width:140px" placeholder="—" />
+          <button class="btn-secondary btn-sm" onclick="saveDisplayName(${u.id})">Сохранить</button>
+        </div>
+      </td>
+      <td><span class="badge badge-${u.role}">${u.role === 'admin' ? 'Админ' : 'Сотрудник'}</span></td>
+      <td>
+        <div class="folder-pills">${folderPills || '<span style="color:var(--muted);font-size:12px">нет доступа</span>'}</div>
+        ${folderOptions ? `<div class="inline-form" style="margin-top:6px">
+          <select id="folder-sel-${u.id}">${folderOptions}</select>
+          <button class="btn-secondary btn-sm" onclick="grantFolder(${u.id})">+ Папка</button>
+        </div>` : ''}
+      </td>
+      <td><button class="btn-danger btn-sm" onclick="deleteUser(${u.id})">Удалить</button></td>
+    </tr>`;
+  }).join('');
+}
+
+document.getElementById('form-create-user').addEventListener('submit', async e => {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  try {
+    await api('POST', '/admin/api/users', fd);
+    showToast('Сотрудник создан');
+    e.target.reset();
+    loadUsers();
+  } catch (err) { showToast(err.message, false); }
+});
+
+async function saveDisplayName(userId) {
+  const val = document.getElementById(`dn-${userId}`).value;
+  const fd = new FormData();
+  fd.append('display_name', val);
+  try {
+    await api('PATCH', `/admin/api/users/${userId}`, fd);
+    showToast('Имя обновлено');
+    loadUsers();
+  } catch (err) { showToast(err.message, false); }
+}
+
+async function grantFolder(userId) {
+  const sel = document.getElementById(`folder-sel-${userId}`);
+  const folderId = sel.value;
+  if (!folderId) return;
+  const fd = new FormData();
+  fd.append('folder_id', folderId);
+  try {
+    await api('POST', `/admin/api/users/${userId}/folders`, fd);
+    showToast('Доступ выдан');
+    loadUsers();
+  } catch (err) { showToast(err.message, false); }
+}
+
+async function revokeFolder(userId, folderId) {
+  if (!confirm('Убрать доступ к папке?')) return;
+  try {
+    await api('DELETE', `/admin/api/users/${userId}/folders/${folderId}`);
+    showToast('Доступ убран');
+    loadUsers();
+  } catch (err) { showToast(err.message, false); }
+}
+
+async function deleteUser(userId) {
+  if (!confirm('Удалить пользователя?')) return;
+  try {
+    await api('DELETE', `/admin/api/users/${userId}`);
+    showToast('Пользователь удалён');
+    loadUsers();
+  } catch (err) { showToast(err.message, false); }
+}
+
+// ─── Accounts ─────────────────────────────────────────────────────────────────
+let accountStatuses = {};
+
+async function loadAccounts() {
+  const fid = document.getElementById('accounts-folder-filter').value;
+  const url = fid ? `/admin/api/accounts?folder_id=${fid}` : '/admin/api/accounts';
+  const accounts = await fetch(url).then(r => r.json()).catch(() => []);
+  renderAccounts(accounts);
+}
+
+function renderAccounts(accounts) {
+  const tbody = document.getElementById('accounts-table-body');
+  if (!accounts.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Нет аккаунтов</td></tr>'; return; }
+  tbody.innerHTML = accounts.map(a => {
+    const st = accountStatuses[a.id];
+    let statusHtml = `<span class="status-dot dot-unknown"></span><span style="color:var(--muted)">не проверен</span>`;
+    if (st === true) statusHtml = `<span class="status-dot dot-valid"></span><span class="badge badge-valid">Активен</span>`;
+    if (st === false) statusHtml = `<span class="status-dot dot-invalid"></span><span class="badge badge-invalid">Недействителен</span>`;
+    return `<tr>
+      <td style="font-size:12px;color:var(--muted)">${escHtml(a.instagram_id)}</td>
+      <td>@${escHtml(a.username)}</td>
+      <td>${a.folder_name ? escHtml(a.folder_name) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td id="status-${a.id}">${statusHtml}</td>
+      <td>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="btn-warn btn-sm" onclick="checkConnection(${a.id})">Проверить токен</button>
+          ${a.folder_id ? `<button class="btn-secondary btn-sm" onclick="disconnectAccount(${a.id})">Отключить от папки</button>` : ''}
+          <button class="btn-danger btn-sm" onclick="deleteAccount(${a.id})">Удалить</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+async function checkConnection(accountId) {
+  const cell = document.getElementById(`status-${accountId}`);
+  cell.innerHTML = `<span style="color:var(--muted)">Проверяем...</span>`;
+  try {
+    const data = await api('POST', `/admin/api/accounts/${accountId}/check-connection`);
+    accountStatuses[accountId] = data.valid;
+    if (data.valid) {
+      cell.innerHTML = `<span class="status-dot dot-valid"></span><span class="badge badge-valid">Активен</span>`;
+    } else {
+      cell.innerHTML = `<span class="status-dot dot-invalid"></span><span class="badge badge-invalid">Недействителен</span><br><span style="font-size:11px;color:var(--error)">${escHtml(data.error || '')}</span>`;
+    }
+  } catch (err) {
+    cell.innerHTML = `<span style="color:var(--error)">${escHtml(err.message)}</span>`;
+  }
+}
+
+async function disconnectAccount(accountId) {
+  if (!confirm('Отключить аккаунт от папки? Он останется в системе, но не будет участвовать в выкладках.')) return;
+  try {
+    await api('PATCH', `/admin/api/accounts/${accountId}/disconnect`);
+    showToast('Аккаунт отключён от папки');
+    loadAccounts();
+  } catch (err) { showToast(err.message, false); }
+}
+
+async function deleteAccount(accountId) {
+  if (!confirm('Удалить аккаунт полностью?')) return;
+  try {
+    await api('DELETE', `/admin/api/accounts/${accountId}`);
+    showToast('Аккаунт удалён');
+    loadAccounts();
+  } catch (err) { showToast(err.message, false); }
+}
+
+// ─── Tasks ───────────────────────────────────────────────────────────────────
+async function loadTasks() {
+  const tasks = await fetch('/admin/api/tasks').then(r => r.json()).catch(() => []);
+  renderTasks(tasks);
+}
+
+function renderTasks(tasks) {
+  const tbody = document.getElementById('tasks-table-body');
+  if (!tasks.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Нет задач</td></tr>'; return; }
+  tbody.innerHTML = tasks.map(t => {
+    const date = new Date(t.created_at).toLocaleString('ru-RU');
+    const accountsHtml = (t.account_results || []).length
+      ? `<details><summary>${t.account_results.length} аккаунт(ов)</summary>
+          <div class="task-accounts">${t.account_results.map(ar =>
+            `<div class="task-account-row">
+              <span style="color:var(--text)">@${escHtml(ar.username || '?')}</span>
+              <span class="acc-status"><span class="badge badge-${ar.status === 'success' ? 'completed' : 'failed'}">${ar.status === 'success' ? 'OK' : 'Ошибка'}</span></span>
+              ${ar.error ? `<div style="font-size:11px;color:var(--error);margin-top:2px">${escHtml(ar.error)}</div>` : ''}
+            </div>`
+          ).join('')}</div></details>`
+      : `<span style="color:var(--muted);font-size:12px">нет данных</span>`;
+
+    return `<tr>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap">${date}</td>
+      <td>${escHtml(t.folder_name || '—')}</td>
+      <td><span class="badge badge-${t.status}">${statusLabel(t.status)}</span></td>
+      <td>${t.stage ? `<span style="font-size:12px;color:var(--muted)">${t.stage}</span>` : '—'}</td>
+      <td>${t.is_test_mode ? '<span class="badge badge-processing">Тест</span>' : '—'}</td>
+      <td>${accountsHtml}</td>
+      <td style="font-size:12px;color:var(--error);max-width:200px;word-break:break-all">${t.error ? escHtml(t.error) : '—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function statusLabel(s) {
+  const m = { pending: 'Ожидание', processing: 'Обработка', completed: 'Готово', failed: 'Ошибка' };
+  return m[s] || s;
+}
+
+// ─── Utils ───────────────────────────────────────────────────────────────────
+function escHtml(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ─── Init ────────────────────────────────────────────────────────────────────
+(async () => {
+  await loadFolders();
+  await loadUsers();
+})();
+</script>
+</body>
+</html>

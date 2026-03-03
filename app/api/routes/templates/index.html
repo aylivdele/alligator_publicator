@@ -1065,7 +1065,11 @@
 
 <header>
   <div class="logo">Alligator <span>/</span> Publicator</div>
-  <div class="header-badge">Instagram Auth Manager</div>
+  <div style="display:flex;align-items:center;gap:14px">
+    <div class="header-badge" id="headerUserBadge" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div>
+    <a id="adminPanelLink" href="/admin" style="display:none;font-size:11px;color:var(--accent);text-decoration:none;letter-spacing:0.05em;white-space:nowrap">Админ ↗</a>
+    <a href="/logout" style="font-size:11px;color:var(--text-secondary);text-decoration:none;letter-spacing:0.05em;white-space:nowrap">Выйти</a>
+  </div>
 </header>
 
 <main>
@@ -1432,7 +1436,7 @@
         document.getElementById('dropzoneText').innerHTML =
           `<strong>Выбери файл</strong> или перетащи сюда`;
       } else {
-        showPublishStatus(data.detail || data.error || 'Ошибка публикации', 'err');
+        showPublishStatus(data?.detail?.toString() || data?.error?.toString() || 'Ошибка публикации', 'err');
       }
     } catch {
       showPublishStatus('Сетевая ошибка, попробуй снова', 'err');
@@ -1866,8 +1870,43 @@
   }
 
   /* ── Init ── */
-  loadAccounts();
-  loadTasks();
+  (async () => {
+    let me;
+    try {
+      const r = await fetch('/api/me');
+      if (r.status === 401) { window.location.href = '/login'; return; }
+      me = await r.json();
+    } catch {
+      window.location.href = '/login';
+      return;
+    }
+
+    /* Update header */
+    document.getElementById('headerUserBadge').textContent = me.display_name || me.username;
+
+    if (me.role === 'admin') {
+      document.getElementById('adminPanelLink').style.display = 'inline';
+      /* Admin sees everything — load accounts (which also builds folder select) */
+      loadAccounts();
+    } else {
+      /* Employees: hide accounts section and connect button */
+      document.querySelector('.accounts-section').style.display = 'none';
+      document.querySelector('.auth-section').style.display = 'none';
+      /* Hide "create folder" section inside modal */
+      const divider = document.querySelector('.modal-divider');
+      const newFolderRow = document.querySelector('.new-folder-row');
+      if (divider) divider.style.display = 'none';
+      if (newFolderRow) newFolderRow.style.display = 'none';
+      /* Populate publish folder select from /api/folders (already filtered server-side) */
+      try {
+        const folders = await fetch('/api/folders').then(r => r.json());
+        const folderMap = new Map(folders.map(f => [f.id, { id: f.id, label: f.name, count: f.count }]));
+        buildPublishFolderSelect(folderMap);
+      } catch {}
+    }
+
+    loadTasks();
+  })();
 </script>
 
 </body>

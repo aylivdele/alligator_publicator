@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
-from app.domain.models import Folder
+from app.api.deps import require_admin, require_auth
+from app.domain.models import Folder, User, UserFolderAccess, UserRole
 from app.infrastructure.database.db import get_db
 
 
@@ -10,8 +11,12 @@ router = APIRouter()
 
 
 @router.get("/folders")
-async def get_folders(db: Session = Depends(get_db)):
-    folders = db.query(Folder).all()
+async def get_folders(db: Session = Depends(get_db), current_user: User = Depends(require_auth)):
+    if current_user.role == UserRole.admin:
+        folders = db.query(Folder).all()
+    else:
+        accessible_ids = [fa.folder_id for fa in current_user.folder_accesses]
+        folders = db.query(Folder).filter(Folder.id.in_(accessible_ids)).all()
     return [
         {
             "id": f.id,
@@ -23,7 +28,7 @@ async def get_folders(db: Session = Depends(get_db)):
 
 
 @router.post("/folders")
-async def create_folder(request: Request, db: Session = Depends(get_db)):
+async def create_folder(request: Request, db: Session = Depends(get_db), _: User = Depends(require_admin)):
     data = await request.json()
     name = data.get("name", "").strip()
     if not name:
