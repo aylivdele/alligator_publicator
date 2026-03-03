@@ -1172,28 +1172,6 @@
       </div>
     </div>
   </div>
-  <!-- ── Статус и история выкладки ── -->
-  <div class="tasks-section">
-    <div class="tasks-header">
-      <div class="tasks-title">Статус выкладки</div>
-      <div class="tasks-header-right">
-        <div class="count-badge" id="tasksCount">—</div>
-        <button class="btn-refresh" id="btnRefreshTasks" onclick="loadTasks(true)">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polyline points="23 4 23 10 17 10"/>
-            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-          </svg>
-          Обновить
-        </button>
-      </div>
-    </div>
-    <div id="tasksBody">
-      <div class="loading">
-        <div class="spinner"></div>
-        Загрузка задач…
-      </div>
-    </div>
-  </div>
 
   <!-- ── Просмотры рилсов ── -->
   <div class="tasks-section" id="viewsSection" style="margin-top:20px">
@@ -1213,6 +1191,29 @@
       <div class="loading">
         <div class="spinner"></div>
         Загрузка просмотров…
+      </div>
+    </div>
+  </div>
+  
+  <!-- ── Статус и история выкладки ── -->
+  <div class="tasks-section">
+    <div class="tasks-header">
+      <div class="tasks-title">Статус выкладки</div>
+      <div class="tasks-header-right">
+        <div class="count-badge" id="tasksCount">—</div>
+        <button class="btn-refresh" id="btnRefreshTasks" onclick="loadTasks(true)">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <polyline points="23 4 23 10 17 10"/>
+            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+          </svg>
+          Обновить
+        </button>
+      </div>
+    </div>
+    <div id="tasksBody">
+      <div class="loading">
+        <div class="spinner"></div>
+        Загрузка задач…
       </div>
     </div>
   </div>
