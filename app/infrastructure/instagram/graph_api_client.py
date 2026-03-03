@@ -124,32 +124,43 @@ class InstagramGraphApiClient(InstagramPublisher):
 
         if reel.thumbnail_url:
             payload["thumb_offset"] = 0  # можно расширить
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(url, data=payload)
             response.raise_for_status()
 
             return response.json()["id"]
-    
+
     async def _wait_for_container(self, creation_id: str, account: InstagramAccount):
         url = f"{self.BASE_URL}/{creation_id}"
 
-        params={
+        params = {
             "fields": "status_code,status",
             "access_token": account.access_token
         }
         sleep_seconds = 10
 
-        finished = False
         async with httpx.AsyncClient() as client:
-            while not finished:
+            while True:
                 response = await client.get(url, params=params)
                 response.raise_for_status()
 
-                finished = response.json()["status_code"] == "FINISHED"
-                if not finished:
-                    self.logger.info(f"Waiting {sleep_seconds} seconds for container {creation_id} to upload")
-                    await asyncio.sleep(sleep_seconds)
-                    sleep_seconds += sleep_seconds
+                data = response.json()
+                status_code = data.get("status_code")
+
+                if status_code == "FINISHED":
+                    return
+                if status_code in ("ERROR", "EXPIRED"):
+                    raise Exception(
+                        f"Media container {creation_id} failed with status {status_code!r}: "
+                        f"{data.get('status', '')}"
+                    )
+
+                self.logger.info(
+                    "Waiting %s seconds for container %s (status: %s)",
+                    sleep_seconds, creation_id, status_code
+                )
+                await asyncio.sleep(sleep_seconds)
+                sleep_seconds += sleep_seconds
 
 
     async def _publish_media(self, creation_id: str, account: InstagramAccount) -> str:
@@ -159,7 +170,7 @@ class InstagramGraphApiClient(InstagramPublisher):
             "creation_id": creation_id,
             "access_token": account.access_token
         }
-        async with httpx.AsyncClient() as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             response = await client.post(url, data=payload)
             response.raise_for_status()
 

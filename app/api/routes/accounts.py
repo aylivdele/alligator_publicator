@@ -28,7 +28,7 @@ async def get_accounts(db: Session = Depends(get_db), _: User = Depends(require_
             "expires_in": a.expires_in,
             "created_at": str(a.created_at),
             "folder_id": a.folder_id,
-            "folder_name": a.folder.name if a.folder else None
+            "folder_name": a.folder.name if a.folder_id else None
         }
         for a in accounts
     ]
