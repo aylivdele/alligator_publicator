@@ -77,7 +77,7 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
         is_admin = current_user.role == UserRole.admin
 
         rows = []
-        for task, folderName in result:
+        for task, folder_name in result:
             account_info = None
             if is_admin:
                 account_info = [
@@ -100,7 +100,7 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
 
             rows.append({
                 "id": task.id,
-                "folderName": folderName,
+                "folder_name": folder_name,
                 "status": task.status,
                 "stage": task.stage,
                 "error": task.error,
