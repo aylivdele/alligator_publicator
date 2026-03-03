@@ -1073,22 +1073,6 @@
 </header>
 
 <main>
-  <div class="hero">
-    <div class="tag">Instagram Platform API</div>
-    <h1>Token <em>Manager</em></h1>
-    <p class="desc">Авторизуй Instagram аккаунты и получай долгоживущие токены (60 дней) для автопостинга.</p>
-  </div>
-
-  <div class="auth-section">
-    <button class="btn-auth" onclick="openModal()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="2" y="2" width="20" height="20" rx="5"/>
-        <circle cx="12" cy="12" r="4"/>
-        <circle cx="17.5" cy="6.5" r="1.5" fill="currentColor" stroke="none"/>
-      </svg>
-      Подключить Instagram аккаунт
-    </button>
-  </div>
 
   <!-- ── Форма публикации ── -->
   <div class="publish-section">
@@ -1212,79 +1196,12 @@
   </div>
 </main>
 
-<footer>
-  <span>alligator.meta-box.ru</span>
-  <span>API: /api/accounts · /api/token/{id}</span>
-</footer>
-
-<!-- ══════════════════════════════════════
-     POPUP: Выбор / создание папки
-══════════════════════════════════════ -->
-<div class="modal-backdrop" id="modalBackdrop" onclick="handleBackdropClick(event)">
-  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-    <div class="modal-header">
-      <div>
-        <div class="modal-title" id="modalTitle">Выбор папки</div>
-        <div class="modal-subtitle">Выбери папку или создай новую</div>
-      </div>
-      <button class="btn-close" onclick="closeModal()" aria-label="Закрыть">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
-        </svg>
-      </button>
-    </div>
-
-    <div class="modal-body">
-      <!-- Список существующих папок -->
-      <div class="section-label">Существующие папки</div>
-      <div class="folders-list" id="foldersList">
-        <div class="loading" style="padding:16px 0">
-          <div class="spinner"></div>
-        </div>
-      </div>
-
-      <div class="modal-divider">или создай новую</div>
-
-      <!-- Создание новой папки -->
-      <div class="new-folder-row">
-        <input
-          type="text"
-          class="input-folder"
-          id="newFolderInput"
-          placeholder="Название папки…"
-          maxlength="64"
-          autocomplete="off"
-          onkeydown="handleFolderInputKey(event)"
-        />
-        <button class="btn-create-folder" id="btnCreateFolder" onclick="createFolder()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-          </svg>
-          Создать
-        </button>
-      </div>
-      <div class="input-error" id="folderError"></div>
-    </div>
-
-    <div class="modal-footer">
-      <button class="btn-cancel" onclick="closeModal()">Отмена</button>
-      <button class="btn-proceed" id="btnProceed" onclick="proceedAuth()" disabled>
-        Подключить аккаунт
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-        </svg>
-      </button>
-    </div>
-  </div>
-</div>
-
 <script>
   /* ══════════════════════════════════════
      State
   ══════════════════════════════════════ */
   let allAccounts = [];
   let activeFilterIds = new Set(); // пусто = "Все"
-  let selectedFolderId = null;     // для попапа авторизации
 
   /* ══════════════════════════════════════
      Utils
@@ -1607,127 +1524,6 @@
   }
 
   /* ══════════════════════════════════════
-     Modal — выбор папки перед авторизацией
-  ══════════════════════════════════════ */
-  async function openModal() {
-    selectedFolderId = null;
-    document.getElementById('btnProceed').disabled = true;
-    document.getElementById('newFolderInput').value = '';
-    clearFolderError();
-
-    document.getElementById('modalBackdrop').classList.add('open');
-    document.body.style.overflow = 'hidden';
-
-    await loadFolders();
-    document.getElementById('newFolderInput').focus();
-  }
-
-  function closeModal() {
-    document.getElementById('modalBackdrop').classList.remove('open');
-    document.body.style.overflow = '';
-  }
-
-  function handleBackdropClick(e) {
-    if (e.target === document.getElementById('modalBackdrop')) closeModal();
-  }
-
-  async function loadFolders() {
-    const list = document.getElementById('foldersList');
-    list.innerHTML = '<div class="loading" style="padding:12px 0"><div class="spinner"></div></div>';
-    try {
-      const res = await fetch('/api/folders');
-      const folders = await res.json();
-      renderFolderOptions(folders);
-    } catch {
-      list.innerHTML = '<div class="no-folders">Не удалось загрузить папки</div>';
-    }
-  }
-
-  function renderFolderOptions(folders) {
-    const list = document.getElementById('foldersList');
-    if (!folders.length) {
-      list.innerHTML = '<div class="no-folders">Пока нет папок — создай первую</div>';
-      return;
-    }
-    list.innerHTML = folders.map(f => `
-      <label class="folder-option" data-id="${f.id}" onclick="selectFolder(${f.id}, this)">
-        <input type="radio" name="folder" value="${f.id}"/>
-        <div class="folder-option-icon">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-          </svg>
-        </div>
-        <span class="folder-option-name">${escHtml(f.name)}</span>
-        <span class="folder-option-count">${f.count} акк.</span>
-        <div class="folder-option-check"></div>
-      </label>`).join('');
-  }
-
-  function selectFolder(id, el) {
-    document.querySelectorAll('.folder-option').forEach(o => o.classList.remove('selected'));
-    el.classList.add('selected');
-    selectedFolderId = id;
-    document.getElementById('btnProceed').disabled = false;
-    clearFolderError();
-  }
-
-  async function createFolder() {
-    const input = document.getElementById('newFolderInput');
-    const name = input.value.trim();
-    if (!name) { showFolderError('Введи название папки'); return; }
-
-    const btn = document.getElementById('btnCreateFolder');
-    btn.disabled = true;
-    btn.textContent = '…';
-
-    try {
-      const res = await fetch('/api/folders', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name })
-      });
-      const data = await res.json();
-
-      if (!res.ok) { showFolderError(data.error || 'Ошибка создания папки'); return; }
-
-      input.value = '';
-      clearFolderError();
-      await loadFolders();
-
-      setTimeout(() => {
-        const el = document.querySelector(`.folder-option[data-id="${data.id}"]`);
-        if (el) selectFolder(data.id, el);
-      }, 50);
-
-    } catch {
-      showFolderError('Сетевая ошибка, попробуй снова');
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
-      </svg> Создать`;
-    }
-  }
-
-  function handleFolderInputKey(e) { if (e.key === 'Enter') createFolder(); }
-
-  function showFolderError(msg) {
-    const el = document.getElementById('folderError');
-    el.textContent = msg;
-    el.classList.add('visible');
-  }
-  function clearFolderError() {
-    document.getElementById('folderError').classList.remove('visible');
-  }
-
-  function proceedAuth() {
-    if (!selectedFolderId) return;
-    window.location.href = `/start-auth?folder_id=${selectedFolderId}`;
-  }
-
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
-
-  /* ══════════════════════════════════════
      Тоггл: основная лента / пробный режим
   ══════════════════════════════════════ */
   let isTestMode = false;
@@ -1889,14 +1685,8 @@
       /* Admin sees everything — load accounts (which also builds folder select) */
       loadAccounts();
     } else {
-      /* Employees: hide accounts section and connect button */
+      /* Employees: hide accounts section */
       document.querySelector('.accounts-section').style.display = 'none';
-      document.querySelector('.auth-section').style.display = 'none';
-      /* Hide "create folder" section inside modal */
-      const divider = document.querySelector('.modal-divider');
-      const newFolderRow = document.querySelector('.new-folder-row');
-      if (divider) divider.style.display = 'none';
-      if (newFolderRow) newFolderRow.style.display = 'none';
       /* Populate publish folder select from /api/folders (already filtered server-side) */
       try {
         const folders = await fetch('/api/folders').then(r => r.json());

@@ -15,30 +15,6 @@ from app.infrastructure.instagram.graph_api_client import InstagramGraphApiClien
 from app.infrastructure.storage.s3 import S3Storage
 from app.infrastructure.video.ffmpeg_processor import FFmpegUniqueReelGenerator
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-
-def _bootstrap_admin(settings: config.Settings) -> None:
-    """Create default admin account if no users exist."""
-    Base.metadata.create_all(bind=engine)
-    db: Session = next(get_db())
-    try:
-        if db.query(User).count() == 0:
-            admin = User(
-                username=settings.ADMIN_USERNAME,
-                password_hash=pwd_context.hash(settings.ADMIN_PASSWORD),
-                role=UserRole.admin,
-                display_name="Admin",
-            )
-            db.add(admin)
-            db.commit()
-            logging.getLogger(__name__).info(
-                "Created default admin user: %s", settings.ADMIN_USERNAME
-            )
-    finally:
-        db.close()
-
-
 def create_app() -> FastAPI:
 
     settings = config.settings
@@ -47,8 +23,6 @@ def create_app() -> FastAPI:
     uniqalizer = ReelsUniqalizerService(generator, storage)
     graph_api = InstagramGraphApiClient(settings.GRAPH_API_CLIENT_ID, settings.GRAPH_API_CLIENT_SECRET, settings.GRAPH_API_REDIRECT_URI)
     logging.basicConfig(level=logging.INFO)
-
-    _bootstrap_admin(settings)
 
     app = FastAPI(title="Instagram Publisher API")
 

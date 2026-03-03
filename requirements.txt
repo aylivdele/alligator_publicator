@@ -1,6 +1,6 @@
 alembic==1.18.4
 passlib[bcrypt]==1.7.4
-bcrypt==4.2.1
+bcrypt==3.2.2
 itsdangerous==2.2.0
 types-passlib==1.7.7.20260211
 annotated-doc==0.0.4

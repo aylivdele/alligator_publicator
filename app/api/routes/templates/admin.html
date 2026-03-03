@@ -199,6 +199,7 @@
 
 <nav>
   <div class="nav-tab active" data-tab="users">Сотрудники</div>
+  <div class="nav-tab" data-tab="folders">Папки</div>
   <div class="nav-tab" data-tab="accounts">Аккаунты</div>
   <div class="nav-tab" data-tab="tasks">Выкладки</div>
 </nav>
@@ -255,9 +256,48 @@
     </div>
   </div>
 
+  <!-- ───── ПАПКИ ───── -->
+  <div class="section" id="tab-folders">
+    <h2>Папки</h2>
+
+    <div class="card">
+      <h3 style="font-size:13px;margin-bottom:14px;color:var(--muted)">Создать папку</h3>
+      <div class="inline-form">
+        <input id="new-folder-name" placeholder="Название папки…" style="width:260px" maxlength="64" />
+        <button onclick="createFolder()">Создать</button>
+      </div>
+      <div id="folder-create-error" style="color:var(--error);font-size:12px;margin-top:8px;display:none"></div>
+    </div>
+
+    <div class="card" style="padding:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Аккаунтов</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="folders-table-body">
+          <tr><td colspan="3" class="empty-state">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- ───── АККАУНТЫ ───── -->
   <div class="section" id="tab-accounts">
     <h2>Подключённые аккаунты Instagram</h2>
+
+    <div class="card">
+      <h3 style="font-size:13px;margin-bottom:14px;color:var(--muted)">Подключить новый аккаунт</h3>
+      <div class="inline-form">
+        <select id="connect-folder-select" style="min-width:200px">
+          <option value="">— выбери папку —</option>
+        </select>
+        <button id="btn-connect-account" onclick="connectAccount()">Подключить через Instagram</button>
+      </div>
+    </div>
 
     <div class="filter-bar">
       <label style="color:var(--muted);font-size:12px">Папка:</label>
@@ -327,6 +367,7 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
     if (tab.dataset.tab === 'accounts') loadAccounts();
     if (tab.dataset.tab === 'tasks') loadTasks();
     if (tab.dataset.tab === 'users') loadUsers();
+    if (tab.dataset.tab === 'folders') loadFolders();
   });
 });
 
@@ -355,13 +396,64 @@ async function api(method, url, body = null) {
 // ─── Folders ─────────────────────────────────────────────────────────────────
 async function loadFolders() {
   allFolders = await fetch('/api/folders').then(r => r.json()).catch(() => []);
-  const sel = document.getElementById('accounts-folder-filter');
-  sel.innerHTML = '<option value="">Все папки</option>';
+
+  // populate filter dropdown in Аккаунты tab
+  const filterSel = document.getElementById('accounts-folder-filter');
+  filterSel.innerHTML = '<option value="">Все папки</option>';
   allFolders.forEach(f => {
     const o = document.createElement('option');
     o.value = f.id; o.textContent = f.name;
-    sel.appendChild(o);
+    filterSel.appendChild(o);
   });
+
+  // populate folder select in connect-account card
+  const connectSel = document.getElementById('connect-folder-select');
+  connectSel.innerHTML = '<option value="">— выбери папку —</option>';
+  allFolders.forEach(f => {
+    const o = document.createElement('option');
+    o.value = f.id; o.textContent = f.name;
+    connectSel.appendChild(o);
+  });
+
+  // render folders table
+  renderFolders();
+}
+
+function renderFolders() {
+  const tbody = document.getElementById('folders-table-body');
+  if (!allFolders.length) {
+    tbody.innerHTML = '<tr><td colspan="3" class="empty-state">Нет папок</td></tr>';
+    return;
+  }
+  tbody.innerHTML = allFolders.map(f => `<tr>
+    <td>${escHtml(f.name)}</td>
+    <td style="color:var(--muted)">${f.count}</td>
+    <td></td>
+  </tr>`).join('');
+}
+
+async function createFolder() {
+  const input = document.getElementById('new-folder-name');
+  const errEl = document.getElementById('folder-create-error');
+  const name = input.value.trim();
+  errEl.style.display = 'none';
+  if (!name) { errEl.textContent = 'Введите название папки'; errEl.style.display = 'block'; return; }
+  try {
+    await api('POST', '/api/folders', { name });
+    input.value = '';
+    showToast('Папка создана');
+    await loadFolders();
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+  }
+}
+
+function connectAccount() {
+  const sel = document.getElementById('connect-folder-select');
+  const folderId = sel.value;
+  if (!folderId) { showToast('Выберите папку', false); return; }
+  window.location.href = `/start-auth?folder_id=${folderId}`;
 }
 
 document.getElementById('accounts-folder-filter').addEventListener('change', loadAccounts);
