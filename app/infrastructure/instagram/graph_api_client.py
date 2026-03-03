@@ -35,14 +35,16 @@ class InstagramGraphApiClient(InstagramPublisher):
                 raise Exception(short_data)
 
             short_token = short_data["access_token"]
+            return await self.update_token(short_token)
 
-            # Шаг 2: обмен на долгоживущий токен (60 дней)
+    async def update_token(self, current_token: str):
+        async with httpx.AsyncClient() as client:        
             long_resp = await client.get(
                 f"{self.BASE_URL}/access_token",
                 params={
                     "grant_type": "ig_exchange_token",
                     "client_secret": self.client_secret,
-                    "access_token": short_token
+                    "access_token": current_token
                 }
             )
             long_data = long_resp.json()

@@ -313,7 +313,7 @@
             <th>Instagram ID</th>
             <th>Username</th>
             <th>Папка</th>
-            <th>Статус токена</th>
+            <th>Токен</th>
             <th>Действия</th>
           </tr>
         </thead>
@@ -592,18 +592,37 @@ function renderAccounts(accounts) {
   if (!accounts.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Нет аккаунтов</td></tr>'; return; }
   tbody.innerHTML = accounts.map(a => {
     const st = accountStatuses[a.id];
-    let statusHtml = `<span class="status-dot dot-unknown"></span><span style="color:var(--muted)">не проверен</span>`;
-    if (st === true) statusHtml = `<span class="status-dot dot-valid"></span><span class="badge badge-valid">Активен</span>`;
-    if (st === false) statusHtml = `<span class="status-dot dot-invalid"></span><span class="badge badge-invalid">Недействителен</span>`;
+    let connHtml = `<span class="status-dot dot-unknown"></span><span style="color:var(--muted)">не проверен</span>`;
+    if (st === true) connHtml = `<span class="status-dot dot-valid"></span><span class="badge badge-valid">Активен</span>`;
+    if (st === false) connHtml = `<span class="status-dot dot-invalid"></span><span class="badge badge-invalid">Недействителен</span>`;
+
+    let daysHtml;
+    if (a.days_left === null || a.days_left === undefined) {
+      daysHtml = `<span style="color:var(--muted)">—</span>`;
+    } else if (a.days_left <= 7) {
+      daysHtml = `<span class="badge badge-error">${a.days_left} дн.</span>`;
+    } else if (a.days_left <= 30) {
+      daysHtml = `<span class="badge badge-pending" style="color:var(--warn);background:rgba(240,160,76,0.15)">${a.days_left} дн.</span>`;
+    } else {
+      daysHtml = `<span class="badge badge-success">${a.days_left} дн.</span>`;
+    }
+
     return `<tr>
       <td style="font-size:12px;color:var(--muted)">${escHtml(a.instagram_id)}</td>
       <td>@${escHtml(a.username)}</td>
       <td>${a.folder_name ? escHtml(a.folder_name) : '<span style="color:var(--muted)">—</span>'}</td>
-      <td id="status-${a.id}">${statusHtml}</td>
+      <td>
+        <div id="status-${a.id}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          ${connHtml}
+          <span style="color:var(--border)">|</span>
+          <span id="days-${a.id}">${daysHtml}</span>
+        </div>
+      </td>
       <td>
         <div style="display:flex;gap:6px;flex-wrap:wrap">
-          <button class="btn-warn btn-sm" onclick="checkConnection(${a.id})">Проверить токен</button>
-          ${a.folder_id ? `<button class="btn-secondary btn-sm" onclick="disconnectAccount(${a.id})">Отключить от папки</button>` : ''}
+          <button class="btn-warn btn-sm" onclick="checkConnection(${a.id})">Проверить</button>
+          <button class="btn-secondary btn-sm" onclick="refreshToken(${a.id})">Обновить токен</button>
+          ${a.folder_id ? `<button class="btn-secondary btn-sm" onclick="disconnectAccount(${a.id})">Отключить</button>` : ''}
           <button class="btn-danger btn-sm" onclick="deleteAccount(${a.id})">Удалить</button>
         </div>
       </td>
@@ -624,6 +643,20 @@ async function checkConnection(accountId) {
     }
   } catch (err) {
     cell.innerHTML = `<span style="color:var(--error)">${escHtml(err.message)}</span>`;
+  }
+}
+
+async function refreshToken(accountId) {
+  const daysEl = document.getElementById(`days-${accountId}`);
+  const prev = daysEl.innerHTML;
+  daysEl.innerHTML = `<span style="color:var(--muted)">обновляем…</span>`;
+  try {
+    const data = await api('POST', `/admin/api/accounts/${accountId}/refresh-token`);
+    showToast('Токен обновлён');
+    loadAccounts();
+  } catch (err) {
+    daysEl.innerHTML = prev;
+    showToast(err.message, false);
   }
 }
 

@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -145,6 +146,15 @@ def create_admin_routes(graph_api: InstagramGraphApiClient) -> APIRouter:
         if folder_id is not None:
             query = query.filter_by(folder_id=folder_id)
         accounts = query.all()
+        def _days_left(a: InstagramAccount) -> Optional[int]:
+            base = a.updated_at or a.created_at
+            if base is None or a.expires_in is None:
+                return None
+            if base.tzinfo is None:
+                base = base.replace(tzinfo=timezone.utc)
+            expires_at = base.replace(tzinfo=timezone.utc) + timedelta(seconds=int(a.expires_in))
+            return max(0, (expires_at - datetime.now(timezone.utc)).days)
+
         return [
             {
                 "id": a.id,
@@ -152,8 +162,7 @@ def create_admin_routes(graph_api: InstagramGraphApiClient) -> APIRouter:
                 "username": a.username,
                 "folder_id": a.folder_id,
                 "folder_name": a.folder.name if a.folder else None,
-                "expires_in": a.expires_in,
-                "created_at": str(a.created_at),
+                "days_left": _days_left(a),
             }
             for a in accounts
         ]
@@ -174,6 +183,25 @@ def create_admin_routes(graph_api: InstagramGraphApiClient) -> APIRouter:
             return {"valid": True, "username": data.get("username")}
         except Exception as e:
             return {"valid": False, "error": str(e)}
+
+    @router.post("/api/accounts/{account_id}/refresh-token")
+    async def refresh_token(
+        account_id: int,
+        db: Session = Depends(get_db),
+        _: User = Depends(require_admin),
+    ):
+        account = db.query(InstagramAccount).filter_by(id=account_id).first()
+        if not account:
+            raise HTTPException(status_code=404, detail="Аккаунт не найден")
+        try:
+            new_token, new_expires_in = await graph_api.update_token(str(account.access_token))
+            account.access_token = new_token
+            account.expires_in = new_expires_in
+            account.updated_at = datetime.now(timezone.utc)
+            db.commit()
+            return {"success": True, "expires_in": new_expires_in}
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Ошибка обновления токена: {e}")
 
     @router.delete("/api/accounts/{account_id}")
     async def delete_account(
