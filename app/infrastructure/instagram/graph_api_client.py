@@ -50,6 +50,20 @@ class InstagramGraphApiClient(InstagramPublisher):
             long_data = long_resp.json()
             return long_data["access_token"], long_data["expires_in"]
         
+    async def refresh_long_lived_token(self, long_token: str):
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{self.BASE_URL}/refresh_access_token",
+                params={
+                    "grant_type": "ig_refresh_token",
+                    "access_token": long_token,
+                }
+            )
+            data = resp.json()
+            if "access_token" not in data:
+                raise Exception(data.get("error", {}).get("message", str(data)))
+            return data["access_token"], data["expires_in"]
+
     async def get_account_info(self, long_token: str):
         async with httpx.AsyncClient() as client:
             me_resp = await client.get(

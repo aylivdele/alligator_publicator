@@ -194,7 +194,7 @@ def create_admin_routes(graph_api: InstagramGraphApiClient) -> APIRouter:
         if not account:
             raise HTTPException(status_code=404, detail="Аккаунт не найден")
         try:
-            new_token, new_expires_in = await graph_api.update_token(str(account.access_token))
+            new_token, new_expires_in = await graph_api.refresh_long_lived_token(str(account.access_token))
             account.access_token = new_token
             account.expires_in = new_expires_in
             account.updated_at = datetime.now(timezone.utc)
