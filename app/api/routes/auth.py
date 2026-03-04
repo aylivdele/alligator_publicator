@@ -26,7 +26,7 @@ def create_auth_routes(graph_api: InstagramGraphApiClient, settings: Optional[co
     def get_auth_url(folder_id: Optional[int] = None):
         state = str(folder_id) if folder_id else "0"
         return (
-            f"https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1981989866068427&redirect_uri=https://alligator.meta-box.ru/auth&response_type=code&scope=instagram_business_basic%2Cinstagram_business_manage_messages%2Cinstagram_business_manage_comments%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights&state={state}"
+            f"https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1981989866068427&redirect_uri=https://alligator.meta-box.ru/auth&response_type=code&scope=instagram_business_basic%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights&state={state}"
         )
 
     @router.get("/", response_class=HTMLResponse)
