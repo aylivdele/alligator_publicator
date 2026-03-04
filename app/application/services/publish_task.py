@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import os
+import random
+import time
 import uuid
 
 from fastapi import UploadFile
@@ -44,34 +46,30 @@ class PublishVideoTask:
       task.stage = TaskStage.uploading
       db.commit()
 
-      async def run_tasks():
-        tasks = [
-            asyncio.create_task(
-                self.instagram_publisher.publish_reel(reel, account)
-            )
-            for reel, account in zip(reels, accounts)
-        ]
-
-        return await asyncio.gather(*tasks, return_exceptions=True) 
-            
-      results = asyncio.run(run_tasks())
-      for account, result in zip(accounts, results):
-          if isinstance(result, Exception):
-              self.logger.exception("Publish failed for account %s", account.instagram_id, exc_info=result)
-              ar = TaskAccountResult(
-                  task_id=task.id,
-                  account_id=account.id,
-                  status=AccountResultStatus.failed,
-                  error=str(result),
-              )
-          else:
+      for i, (reel, account) in enumerate(zip(reels, accounts)):
+          try:
+              media_id = asyncio.run(self.instagram_publisher.publish_reel(reel, account))
               ar = TaskAccountResult(
                   task_id=task.id,
                   account_id=account.id,
                   status=AccountResultStatus.success,
-                  media_id=result,
+                  media_id=media_id,
+              )
+          except Exception as e:
+              self.logger.exception("Publish failed for account %s", account.instagram_id, exc_info=e)
+              ar = TaskAccountResult(
+                  task_id=task.id,
+                  account_id=account.id,
+                  status=AccountResultStatus.failed,
+                  error=str(e),
               )
           db.add(ar)
+          db.commit()
+
+          if i < len(accounts) - 1:
+              delay = random.randint(60, 180)
+              self.logger.info("Sleeping %ds before next account", delay)
+              time.sleep(delay)
 
       task.status = TaskStatus.completed
       task.stage = TaskStage.done

@@ -43,6 +43,16 @@ async def logout(request: Request):
     return RedirectResponse("/login", status_code=302)
 
 
+@router.get("/privacy", response_class=HTMLResponse)
+async def privacy_page(request: Request):
+    return templates.TemplateResponse("privacy.html", {"request": request})
+
+
+@router.get("/terms", response_class=HTMLResponse)
+async def terms_page(request: Request):
+    return templates.TemplateResponse("terms.html", {"request": request})
+
+
 @router.get("/api/me")
 async def get_me(request: Request, db: Session = Depends(get_db)):
     user_id = request.session.get("user_id")

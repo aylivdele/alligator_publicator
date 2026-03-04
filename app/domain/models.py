@@ -55,6 +55,7 @@ class TaskAccountResult(Base):
     permalink = Column(String, nullable=True)
     view_count = Column(Integer, nullable=True)
     views_updated_at = Column(DateTime, nullable=True)
+    million_notified = Column(Boolean, default=False, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     task = relationship("PublishTask", back_populates="account_results")

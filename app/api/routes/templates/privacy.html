@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Alligator Publicator</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 16px; line-height: 1.7; color: #1a1a1a; background: #fff; }
+  .container { max-width: 780px; margin: 0 auto; padding: 64px 32px; }
+  .logo { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #666; margin-bottom: 48px; }
+  h1 { font-size: 36px; font-weight: 700; color: #111; margin-bottom: 8px; line-height: 1.2; }
+  .meta { font-size: 14px; color: #888; margin-bottom: 48px; padding-bottom: 32px; border-bottom: 1px solid #eee; }
+  h2 { font-size: 20px; font-weight: 600; color: #111; margin-top: 40px; margin-bottom: 12px; }
+  p { margin-bottom: 16px; color: #333; }
+  ul { margin: 0 0 16px 0; padding-left: 24px; color: #333; }
+  ul li { margin-bottom: 8px; }
+  a { color: #0066cc; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .highlight-box { margin: 32px 0; padding: 20px 24px; background: #f0f7ff; border-left: 3px solid #0066cc; font-size: 15px; color: #333; }
+  .contact-box { margin-top: 48px; padding: 24px; background: #f8f8f8; border-left: 3px solid #ddd; font-size: 15px; }
+  .contact-box strong { display: block; margin-bottom: 8px; color: #111; }
+  .divider { margin: 64px 0 48px; border: none; border-top: 2px solid #eee; }
+  .lang-label { font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #999; margin-bottom: 16px; }
+  footer { margin-top: 64px; padding-top: 24px; border-top: 1px solid #eee; font-size: 13px; color: #aaa; }
+
+  .delete-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 14px 24px;
+    background: #fff;
+    color: #c0392b;
+    border: 2px solid #c0392b;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+    scroll-margin-top: 80px;
+  }
+  .delete-btn:hover { background: #c0392b; color: #fff; text-decoration: none; }
+  .delete-btn svg { flex-shrink: 0; }
+
+  @keyframes highlight-pulse {
+    0%   { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.5); background: #fff; }
+    30%  { box-shadow: 0 0 0 14px rgba(192, 57, 43, 0); background: #fff3f2; }
+    60%  { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0.4); background: #fff; }
+    100% { box-shadow: 0 0 0 0 rgba(192, 57, 43, 0); }
+  }
+  .delete-btn.highlighted { animation: highlight-pulse 1.2s ease 3; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">Alligator Publicator</div>
+  <h1>Privacy Policy</h1>
+  <div class="meta">Last updated: March 4, 2026 &nbsp;&middot;&nbsp; Effective date: March 4, 2026</div>
+  <div class="highlight-box"><strong>About this Application:</strong> Alligator Publicator is an internal content management tool built exclusively for use by a single social media marketing (SMM) agency. It is not a public SaaS product and is not distributed or sold to third parties. Access is restricted to authorized staff members of the agency only.</div>
+  <p>This Privacy Policy describes how Alligator Publicator ("we", "our", or "the Application"), operated by Individual Entrepreneur Smelov Ruslan Evgenyevich (INN: 421414407974, OGRNIP: 324420500023307), registered in the Russian Federation, collects, uses, and handles information when authorized agency staff use the Application to manage and publish content to client Instagram accounts via the official Instagram Platform API.</p>
+  <p>Alligator Publicator is designed specifically for <strong>professional SMM managers and social media agencies</strong> who manage Instagram Business and Creator accounts on behalf of their clients. The Application enables agency staff to connect client accounts (with explicit authorization), organize them into folders by niche, category, or project, and publish Reels across multiple managed accounts from a single interface. Every account must be individually authorized by its owner through Instagram's official OAuth flow.</p>
+  <h2>1. Who Uses This Application</h2>
+  <ul>
+    <li><strong>Agency Staff</strong> — authorized employees or contractors who operate the Application to manage content publishing on behalf of clients.</li>
+    <li><strong>Clients (Instagram Account Owners)</strong> — individuals or businesses who engage the agency for social media management and explicitly authorize the Application via Instagram OAuth Login.</li>
+  </ul>
+  <p>The agency acts as a <strong>data processor</strong> on behalf of its clients. All access is governed by a service agreement between the agency and the client.</p>
+  <h2>2. Information We Collect</h2>
+  <p>When a client authorizes the Application, we collect and store only:</p>
+  <ul>
+    <li><strong>Instagram User ID</strong> — a unique numeric identifier assigned by Instagram.</li>
+    <li><strong>Instagram Username</strong> — the public handle (e.g. @username).</li>
+    <li><strong>Access Token</strong> — a long-lived OAuth token issued by Instagram for authorized publishing actions.</li>
+  </ul>
+  <p>We do not collect passwords, email addresses, phone numbers, follower lists, direct messages, or any other personal data.</p>
+  <h2>3. How We Use This Information</h2>
+  <ul>
+    <li>Authenticating API requests to Instagram on behalf of the authorized account.</li>
+    <li>Publishing Reels to client Instagram accounts that have explicitly granted access.</li>
+    <li>Organizing connected accounts into folders by niche or project for internal management.</li>
+  </ul>
+  <p>We do not use data for advertising, analytics, profiling, or any purpose outside the direct operation of the Application.</p>
+  <h2>4. Instagram Permissions We Request</h2>
+  <ul>
+    <li><strong>instagram_business_basic</strong> — to retrieve the Instagram User ID and username.</li>
+    <li><strong>instagram_business_content_publish</strong> — to publish Reels on behalf of the authorized account.</li>
+  </ul>
+  <p>We do not request access to followers, comments, messages, insights, or any other data.</p>
+  <h2>5. Client Consent and Authorization</h2>
+  <p>Before any account is connected, the account owner must:</p>
+  <ul>
+    <li>Enter into a service agreement with the agency.</li>
+    <li>Personally complete the Instagram OAuth authorization flow.</li>
+  </ul>
+  <p>No account is connected without the explicit informed consent of its owner. Clients may revoke access at any time via Instagram Settings → Apps and Websites.</p>
+  <h2>6. Data Storage and Security</h2>
+  <p>All data is stored on a private dedicated server in the <strong>Netherlands (EU)</strong>. Security measures include:</p>
+  <ul>
+    <li>All data in transit encrypted via HTTPS/TLS.</li>
+    <li>Access tokens stored in a restricted-access database.</li>
+    <li>Server access restricted by firewall and SSH key authentication.</li>
+    <li>No data stored on personal devices or third-party cloud services.</li>
+  </ul>
+  <p>Data is retained only while the account remains connected and is permanently deleted upon disconnection or client request.</p>
+  <h2>7. Data Sharing and Third Parties</h2>
+  <p>We do not sell, rent, or share any collected data with third parties. No third-party tracking scripts, analytics tools, or advertising SDKs are embedded in the Application. Data is shared with Meta only to execute authorized API publishing requests.</p>
+  <h2>8. No Automated or Spam Activity</h2>
+  <ul>
+    <li>All published content is pre-approved by the client.</li>
+    <li>The Application does not automate likes, follows, comments, or direct messages.</li>
+    <li>No Instagram data is scraped or stored beyond what the API explicitly provides.</li>
+    <li>Publishing frequency complies with Instagram API rate limits.</li>
+  </ul>
+  <h2>9. Cookies</h2>
+  <p>The Application uses only essential session cookies to maintain authenticated staff sessions. No advertising, tracking, or analytics cookies are used. No third-party tracking scripts or pixels are embedded in the Application.</p>
+  <h2>10. Third-Party Platforms</h2>
+  <p>The Application integrates exclusively with the Instagram Platform API by Meta Platforms, Inc. Account owners also become subject to <a href="https://privacycenter.instagram.com/policy">Meta's Privacy Policy</a> and <a href="https://developers.facebook.com/policy/">Meta's Platform Policy</a>. We do not control Meta's data practices. The Application does not integrate with any other third-party services, advertising networks, or data brokers.</p>
+  <h2>11. Your Rights and Data Deletion</h2>
+  <p>You have the right to access, correct, delete, or restrict processing of your data, as well as to receive it in a portable format or object to its processing. To exercise these rights, contact us at <a href="mailto:twins.group@mail.com">twins.group@mail.com</a>. We will respond within 30 days.</p>
+  <h2 id="delete-en">12. Data Deletion Request</h2>
+  <p>Send an email to <a href="mailto:twins.group@mail.com">twins.group@mail.com</a> with subject <strong>"Data Deletion Request"</strong> and include your Instagram username. All associated data will be permanently deleted within 30 days. You may also revoke the Application's access at any time via Instagram Settings → Apps and Websites.</p>
+  <h2>13. Your Rights Under GDPR</h2>
+  <p>Since our server is located in the Netherlands (EU), we recognize rights under GDPR, including: access, rectification, erasure ("right to be forgotten"), restriction, portability, and objection. Contact us at <a href="mailto:twins.group@mail.com">twins.group@mail.com</a> to exercise any of these rights.</p>
+  <h2>14. Legal Basis for Processing (GDPR)</h2>
+  <ul>
+    <li><strong>Consent (Art. 6(1)(a))</strong> — account owner explicitly authorizes via Instagram OAuth.</li>
+    <li><strong>Contract (Art. 6(1)(b))</strong> — processing is necessary for the agency-client service agreement.</li>
+    <li><strong>Legitimate interests (Art. 6(1)(f))</strong> — maintaining a list of connected accounts for operational management.</li>
+  </ul>
+  <h2>15. Data Breach Notification</h2>
+  <p>In the event of a breach posing risk to individuals, we will notify the relevant EU supervisory authority within 72 hours (GDPR Art. 33) and notify affected individuals without undue delay where required.</p>
+  <h2>16. Instagram Platform Compliance</h2>
+  <p>This Application is built in full compliance with Meta's Platform Terms and Developer Policies. We request only minimum permissions, never use Instagram data beyond described purposes, and cooperate fully with Meta audits or reviews.</p>
+  <h2>17. Children's Privacy</h2>
+  <p>The Application is intended for professional business use only and is not directed at individuals under the age of 13. We do not knowingly collect data from minors. If you believe we have done so inadvertently, contact us immediately at <a href="mailto:twins.group@mail.com">twins.group@mail.com</a>.</p>
+  <h2>18. Changes to This Policy</h2>
+  <p>We may update this policy at any time. Changes take effect upon posting. The "Last updated" date at the top reflects the most recent revision. Continued use of the Application constitutes acceptance of the updated policy.</p>
+  <hr class="divider">
+  <div class="lang-label">Русский / Russian</div>
+  <h1>Политика конфиденциальности</h1>
+  <div class="meta">Последнее обновление: 4 марта 2026</div>
+  <div class="highlight-box"><strong>О приложении:</strong> Alligator Publicator — внутренний инструмент управления контентом, созданный исключительно для использования одним SMM-агентством. Это не публичный продукт. Доступ ограничен авторизованными сотрудниками агентства.</div>
+  <p>Настоящая Политика конфиденциальности описывает, как Alligator Publicator (оператор — ИП Смелов Руслан Евгеньевич, ИНН: 421414407974, ОГРНИП: 324420500023307) собирает, использует и обрабатывает информацию при использовании приложения авторизованными сотрудниками агентства для управления Instagram-аккаунтами клиентов.</p>
+  <p>Приложение создано специально для <strong>SMM-менеджеров и агентств</strong>, которые ведут Instagram-аккаунты своих клиентов. Инструмент позволяет подключать аккаунты клиентов с их явного согласия, группировать их по папкам (по нише, категории или проекту) и удобно публиковать Reels от имени заказчиков. Каждый аккаунт подключается только с явного согласия его владельца через Instagram OAuth.</p>
+  <h2>1. Кто пользуется приложением</h2>
+  <ul>
+    <li><strong>Сотрудники агентства</strong> — авторизованные SMM-менеджеры, управляющие контентом от имени клиентов.</li>
+    <li><strong>Клиенты (владельцы Instagram-аккаунтов)</strong> — лица или компании, заключившие договор с агентством и самостоятельно подключившие свой аккаунт через Instagram OAuth.</li>
+  </ul>
+  <p>Агентство выступает <strong>оператором обработки данных</strong> по поручению владельца аккаунта в рамках договора на ведение социальных сетей.</p>
+  <h2>2. Какие данные мы собираем</h2>
+  <p>При авторизации через Instagram Login мы сохраняем только необходимый минимум:</p>
+  <ul>
+    <li><strong>Instagram User ID</strong> — уникальный числовой идентификатор аккаунта.</li>
+    <li><strong>Имя пользователя (username)</strong> — публичный никнейм в Instagram.</li>
+    <li><strong>Токен доступа</strong> — долгоживущий OAuth-токен Instagram для выполнения авторизованных действий.</li>
+  </ul>
+  <p>Мы не собираем пароли, email-адреса, номера телефонов, списки подписчиков, переписку и любые другие персональные данные.</p>
+  <h2>3. Цели обработки данных</h2>
+  <ul>
+    <li>Аутентификация API-запросов к Instagram от имени авторизованного аккаунта.</li>
+    <li>Публикация Reels на аккаунтах клиентов, предоставивших доступ.</li>
+    <li>Организация аккаунтов по папкам для удобного управления несколькими заказчиками.</li>
+  </ul>
+  <p>Данные не используются для рекламы, аналитики, профилирования или передачи третьим лицам.</p>
+  <h2>4. Запрашиваемые разрешения Instagram</h2>
+  <ul>
+    <li><strong>instagram_business_basic</strong> — получение User ID и username аккаунта.</li>
+    <li><strong>instagram_business_content_publish</strong> — публикация Reels от имени авторизованного аккаунта.</li>
+  </ul>
+  <p>Мы не запрашиваем доступ к подписчикам, комментариям, сообщениям, статистике или любым другим данным.</p>
+  <h2>5. Согласие клиента</h2>
+  <p>До подключения аккаунта его владелец обязан заключить договор с агентством и самостоятельно пройти авторизацию через Instagram OAuth. Ни один аккаунт не подключается без явного информированного согласия его владельца. Отозвать доступ можно в любое время: Instagram → Настройки → Безопасность → Приложения и сайты.</p>
+  <h2>6. Хранение и безопасность данных</h2>
+  <p>Все данные хранятся на защищённом VPS-сервере в <strong>Нидерландах (ЕС)</strong>. Меры защиты:</p>
+  <ul>
+    <li>Все соединения защищены по HTTPS/TLS.</li>
+    <li>Токены доступа хранятся в базе данных с ограниченным доступом.</li>
+    <li>Доступ к серверу ограничен брандмауэром и SSH-аутентификацией по ключу.</li>
+    <li>Данные не хранятся на личных устройствах или в сторонних облачных сервисах.</li>
+  </ul>
+  <p>Данные хранятся до тех пор, пока аккаунт подключён к приложению, и удаляются при отключении или по запросу клиента.</p>
+  <h2>7. Передача данных третьим лицам</h2>
+  <p>Мы не продаём, не сдаём в аренду и не передаём данные третьим лицам. В приложении отсутствуют сторонние трекеры, аналитические SDK и рекламные пиксели. Данные передаются Meta только в рамках выполнения авторизованных API-запросов на публикацию.</p>
+  <h2>8. Отсутствие спама и автоматизации</h2>
+  <ul>
+    <li>Весь публикуемый контент согласован с клиентом заранее.</li>
+    <li>Приложение не автоматизирует лайки, подписки, комментарии и личные сообщения.</li>
+    <li>Данные Instagram не собираются сверх того, что предоставляет API.</li>
+    <li>Частота публикаций соответствует лимитам Instagram API.</li>
+  </ul>
+  <h2>9. Файлы cookie</h2>
+  <p>Приложение использует только необходимые сессионные cookie для поддержания авторизованных сессий сотрудников. Рекламные, трекинговые и аналитические cookie не используются. Сторонние трекеры и пиксели в приложении отсутствуют.</p>
+  <h2>10. Сторонние платформы</h2>
+  <p>Приложение интегрируется исключительно с Instagram Platform API от Meta Platforms, Inc. Владельцы аккаунтов также подпадают под действие <a href="https://privacycenter.instagram.com/policy">Политики конфиденциальности Meta</a> и <a href="https://developers.facebook.com/policy/">Политики платформы Meta</a>. Мы не контролируем практику обработки данных Meta. Приложение не интегрируется с другими сторонними сервисами, рекламными сетями или брокерами данных.</p>
+  <h2>11. Ваши права и удаление данных</h2>
+  <p>Вы вправе в любое время запросить доступ к своим данным, их исправление, удаление, ограничение обработки, получение в портативном формате или возразить против обработки. Для этого обратитесь на <a href="mailto:twins.group@mail.com">twins.group@mail.com</a>. Мы ответим в течение 30 дней.</p>
+  <h2>12. Запрос на удаление данных</h2>
+  <p>Отправьте письмо на <a href="mailto:twins.group@mail.com">twins.group@mail.com</a> с темой <strong>«Запрос на удаление данных»</strong> и укажите свой Instagram username. Все связанные данные будут удалены в течение 30 дней. Вы также можете в любой момент отозвать доступ приложения через Instagram → Настройки → Приложения и сайты.</p>
+  <a id="delete"
+     class="delete-btn"
+     href="mailto:twins.group@mail.com?subject=%D0%A3%D0%B4%D0%B0%D0%BB%D0%B5%D0%BD%D0%B8%D0%B5%20%D0%BF%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D1%85%20%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85&body=%D0%97%D0%B4%D1%80%D0%B0%D0%B2%D1%81%D1%82%D0%B2%D1%83%D0%B9%D1%82%D0%B5%2C%20%D1%8F%20%D1%85%D0%BE%D1%87%D1%83%2C%20%D1%87%D1%82%D0%BE%D0%B1%D1%8B%20%D0%B2%D1%8B%20%D1%83%D0%B4%D0%B0%D0%BB%D0%B8%D0%BB%D0%B8%20%D0%B2%D1%81%D0%B5%20%D0%BC%D0%BE%D0%B8%20%D0%BF%D0%B5%D1%80%D1%81%D0%BE%D0%BD%D0%B0%D0%BB%D1%8C%D0%BD%D1%8B%D0%B5%20%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D0%B5.">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+    </svg>
+    Удаление персональных данных
+  </a>
+  <h2>13. Ваши права по GDPR</h2>
+  <p>Поскольку наш сервер расположен в Нидерландах (ЕС), мы соблюдаем права субъектов данных по GDPR: доступ, исправление, удаление («право на забвение»), ограничение обработки, переносимость и возражение. Для реализации любого из этих прав обращайтесь на <a href="mailto:twins.group@mail.com">twins.group@mail.com</a>.</p>
+  <h2>14. Правовые основания обработки (GDPR)</h2>
+  <ul>
+    <li><strong>Согласие (ст. 6(1)(a))</strong> — владелец аккаунта явно предоставляет доступ через Instagram OAuth.</li>
+    <li><strong>Договор (ст. 6(1)(b))</strong> — обработка необходима для исполнения договора агентства с клиентом.</li>
+    <li><strong>Законные интересы (ст. 6(1)(f))</strong> — ведение списка подключённых аккаунтов для операционного управления.</li>
+  </ul>
+  <h2>15. Уведомление об утечке данных</h2>
+  <p>В случае утечки данных, представляющей риск для физических лиц, мы уведомим соответствующий надзорный орган ЕС в течение 72 часов (ст. 33 GDPR) и при необходимости — пострадавших лиц без неоправданной задержки.</p>
+  <h2>16. Соответствие правилам Instagram</h2>
+  <p>Приложение создано и работает в полном соответствии с условиями платформы Meta и политикой разработчиков. Мы запрашиваем только минимально необходимые разрешения, не используем данные Instagram сверх описанных целей и готовы к полному взаимодействию при аудите со стороны Meta.</p>
+  <h2>17. Защита детей</h2>
+  <p>Приложение предназначено исключительно для профессионального использования и не ориентировано на лиц младше 13 лет. Если вы считаете, что мы случайно собрали данные несовершеннолетнего, немедленно сообщите нам на <a href="mailto:twins.group@mail.com">twins.group@mail.com</a>.</p>
+  <h2>18. Изменения политики</h2>
+  <p>Мы вправе в любое время вносить изменения в настоящую Политику. Изменения вступают в силу с момента публикации. Дата обновления указывается в шапке страницы. Продолжение использования приложения означает согласие с актуальной редакцией.</p>
+  <div class="contact-box">
+    <strong>Contact Information / Контактная информация</strong>
+    Application: Alligator Publicator<br>
+    Operator: Individual Entrepreneur Smelov Ruslan Evgenyevich (ИП Смелов Руслан Евгеньевич)<br>
+    INN (ИНН): 421414407974<br>
+    OGRNIP (ОГРНИП): 324420500023307<br>
+    Country of Registration: Russian Federation<br>
+    Server Location: Netherlands, EU<br>
+    Website: <a href="https://alligator.meta-box.ru">alligator.meta-box.ru</a><br>
+    Email: <a href="mailto:twins.group@mail.com">twins.group@mail.com</a><br>
+    Data Deletion / Удаление данных: <a href="mailto:twins.group@mail.com">twins.group@mail.com</a>
+  </div>
+  <footer>
+    &copy; 2026 Alligator Publicator &nbsp;&middot;&nbsp; <a href="https://alligator.meta-box.ru">alligator.meta-box.ru</a> &nbsp;&middot;&nbsp; <a href="https://alligator.meta-box.ru/terms">Terms of Service</a>
+  </footer>
+</div>
+<script>
+  if (window.location.hash === '#delete') {
+    const el = document.getElementById('delete');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('highlighted');
+      setTimeout(() => el.classList.remove('highlighted'), 4000);
+    }
+  }
+</script>
+</body>
+</html>

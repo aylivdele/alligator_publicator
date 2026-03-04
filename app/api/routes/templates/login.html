@@ -28,9 +28,15 @@
       font-family: 'DM Mono', monospace;
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
+      gap: 24px;
     }
+
+    footer { font-size: 12px; color: var(--muted); }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
 
     .login-card {
       background: var(--surface);
@@ -132,5 +138,10 @@
       <button type="submit">Войти</button>
     </form>
   </div>
+  <footer>
+    <a href="/privacy">Privacy Policy</a>
+    &nbsp;·&nbsp;
+    <a href="/terms">Terms of Service</a>
+  </footer>
 </body>
 </html>

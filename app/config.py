@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     VIEWS_MAX_AGE_HOURS: int = 48
     VIEWS_REFRESH_MINUTES: int = 30
 
+    TELEGRAM_BOT_TOKEN: str = ""
+    TELEGRAM_CHANNEL_ID: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore"

@@ -26,6 +26,9 @@
     }
 
     body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; font-size: 14px; }
+    footer { text-align: center; padding: 20px; font-size: 12px; color: var(--muted); border-top: 1px solid var(--border); margin-top: 40px; }
+    footer a { color: var(--muted); text-decoration: none; }
+    footer a:hover { color: var(--text); }
 
     header {
       background: var(--surface);
@@ -729,5 +732,10 @@ function escHtml(str) {
   await loadUsers();
 })();
 </script>
+<footer>
+  <a href="/privacy">Privacy Policy</a>
+  &nbsp;·&nbsp;
+  <a href="/terms">Terms of Service</a>
+</footer>
 </body>
 </html>

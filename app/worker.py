@@ -6,6 +6,7 @@ import socket
 from datetime import datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+import requests
 
 from app import config
 from app.application.services.publish_task import PublishVideoTask
@@ -17,6 +18,30 @@ from app.infrastructure.storage.s3 import S3Storage
 from app.infrastructure.video.ffmpeg_processor import FFmpegUniqueReelGenerator
 
 WORKER_ID = socket.gethostname()
+MILLION_VIEWS = 1_000_000
+
+
+def send_million_notification(settings: config.Settings, ar: TaskAccountResult) -> None:
+    if not settings.TELEGRAM_BOT_TOKEN or not settings.TELEGRAM_CHANNEL_ID:
+        return
+    username = ar.account.username if ar.account else "unknown"
+    folder_name = ar.task.folder.name if ar.task and ar.task.folder else "—"
+    permalink = ar.permalink or ""
+    text = (
+        "🚨 РОЛИК МИЛЛИОНИК\n\n"
+        f"Аккаунт: <a href=\"https://www.instagram.com/{username}/\">@{username}</a>\n"
+        f"Папка: {folder_name}\n"
+        f"Ссылка на видео: <a href=\"{permalink}\">Ссылка</a>"
+    )
+    try:
+        requests.post(
+            f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
+            json={"chat_id": settings.TELEGRAM_CHANNEL_ID, "text": text, "parse_mode": "HTML"},
+            timeout=10,
+        )
+    except Exception:
+        pass
+
 
 def fetch_task(db: Session):
     task = db.execute(
@@ -66,6 +91,9 @@ def run_views_updater(graph_api: InstagramGraphApiClient, settings: config.Setti
                     if views is not None:
                         ar.view_count = views
                         ar.views_updated_at = datetime.utcnow()
+                        if views >= MILLION_VIEWS and not ar.million_notified:
+                            send_million_notification(settings, ar)
+                            ar.million_notified = True
                 except Exception:
                     pass
             db.commit()
