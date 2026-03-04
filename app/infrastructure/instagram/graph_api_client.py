@@ -69,19 +69,21 @@ class InstagramGraphApiClient(InstagramPublisher):
             return data["access_token"], data["expires_in"]
 
     async def get_reel_views(self, media_id: str, access_token: str) -> Optional[int]:
-        try:
-            async with httpx.AsyncClient() as client:
-                resp = await client.get(
-                    f"{self.BASE_URL}/{media_id}/insights",
-                    params={"metric": "plays", "access_token": access_token},
-                )
-                data = resp.json()
-                for item in data.get("data", []):
-                    if item.get("name") == "plays":
-                        return item["values"][0]["value"]
-            return None
-        except Exception:
-            return None
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(
+                f"{self.BASE_URL}/{media_id}/insights",
+                params={"metric": "plays", "period": "lifetime", "access_token": access_token},
+            )
+            data = resp.json()
+            self.logger.debug("Reel views response for %s: %s", media_id, data)
+            for item in data.get("data", []):
+                if item.get("name") == "plays":
+                    if "value" in item:
+                        return item["value"]
+                    values = item.get("values", [])
+                    if values:
+                        return values[0].get("value")
+        return None
 
     async def get_reel_permalink(self, media_id: str, access_token: str) -> Optional[str]:
         try:

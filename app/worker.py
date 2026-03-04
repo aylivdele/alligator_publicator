@@ -96,7 +96,7 @@ def run_views_updater(graph_api: InstagramGraphApiClient, settings: config.Setti
                             send_million_notification(settings, ar)
                             ar.million_notified = True
                 except Exception:
-                    pass
+                    logger.exception("Failed to update views for media_id=%s account=%s", ar.media_id, account.username)
             db.commit()
         except Exception as e:
             logger.exception("Views updater error: %s", e)
