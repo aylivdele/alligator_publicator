@@ -64,7 +64,6 @@ def fetch_task(db: Session):
 def run_views_updater(graph_api: InstagramGraphApiClient, settings: config.Settings):
     logger = logging.getLogger(__name__ + ".views")
     while True:
-        time.sleep(settings.VIEWS_REFRESH_MINUTES * 60)
         db = SessionLocal()
         try:
             cutoff = datetime.utcnow() - timedelta(hours=settings.VIEWS_MAX_AGE_HOURS)
@@ -102,6 +101,7 @@ def run_views_updater(graph_api: InstagramGraphApiClient, settings: config.Setti
             logger.exception("Views updater error: %s", e)
         finally:
             db.close()
+        time.sleep(settings.VIEWS_REFRESH_MINUTES * 60)
 
 
 def run_worker():
