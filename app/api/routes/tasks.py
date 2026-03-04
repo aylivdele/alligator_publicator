@@ -1,5 +1,6 @@
 import uuid
 import shutil
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy import select
@@ -21,6 +22,7 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
         caption: str = Form(...),
         selected_folder_id: int = Form(...),
         is_test_mode: bool = Form(...),
+        selected_account_ids: Optional[str] = Form(None),
         db: Session = Depends(get_db),
         current_user: User = Depends(require_auth),
     ):
@@ -39,6 +41,7 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
         task.file_path = temp_path
         task.caption = caption
         task.is_test_mode = is_test_mode
+        task.selected_account_ids = selected_account_ids
 
         db.add(task)
         db.commit()

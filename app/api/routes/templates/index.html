@@ -1053,6 +1053,46 @@
   .publish-status.ok { background: var(--success-soft); color: var(--success); border: 1px solid rgba(61,191,124,.2); }
   .publish-status.err { background: var(--error-soft); color: var(--error); border: 1px solid rgba(232,69,69,.2); }
 
+  /* ── Account selection modal items ── */
+  .account-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 14px;
+    border: 1.5px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all 0.15s;
+    background: var(--surface);
+    margin-bottom: 6px;
+    user-select: none;
+  }
+  .account-option:hover { border-color: var(--accent); background: var(--accent-soft); }
+  .account-option.selected { border-color: var(--accent); background: var(--accent-soft); }
+
+  .account-option-check {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .account-option.selected .account-option-check {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+  .account-option.selected .account-option-check::after {
+    content: '';
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #fff;
+  }
+
+  .account-option-name { font-size: 13px; color: var(--text); flex: 1; }
+
   /* ── Responsive ── */
   @media (max-width: 640px) {
     header, footer { padding-left: 20px; padding-right: 20px; }
@@ -1221,12 +1261,47 @@
   </div>
 </main>
 
+<!-- ── Модальное окно выбора аккаунтов ── -->
+<div class="modal-backdrop" id="accountModalBackdrop">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Выбор аккаунтов</div>
+        <div class="modal-subtitle" id="accountModalSubtitle">Выбери один аккаунт для публикации</div>
+      </div>
+      <button class="btn-close" onclick="closeAccountModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="section-label">Выбери аккаунт</div>
+      <div id="accountModalList"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeAccountModal()">Отмена</button>
+      <button class="btn-proceed" id="btnConfirmPublish" onclick="confirmPublish()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+        Опубликовать
+      </button>
+    </div>
+  </div>
+</div>
+
 <script>
   /* ══════════════════════════════════════
      State
   ══════════════════════════════════════ */
   let allAccounts = [];
   let activeFilterIds = new Set(); // пусто = "Все"
+
+  /* Account modal state */
+  let modalFolderAccounts = [];
+  let selectedAccountIds = new Set();
 
   /* ══════════════════════════════════════
      Utils
@@ -1334,15 +1409,12 @@
     /* при "Все" или мульти — не трогаем, пользователь выбирает сам */
   }
 
-  /* Отправка формы */
-  async function submitPublish(e) {
+  /* Отправка формы — открываем модальное окно выбора аккаунтов */
+  function submitPublish(e) {
     e.preventDefault();
 
     const fileInput = document.getElementById('fileInput');
-    const caption = document.getElementById('captionInput').value.trim();
     const folderId = document.getElementById('publishFolderSelect').value;
-    const statusEl = document.getElementById('publishStatus');
-    const isTestMode = document.getElementById('isStoryToggle').checked;
 
     if (!fileInput.files.length) {
       showPublishStatus('Выбери видеофайл', 'err');
@@ -1353,11 +1425,83 @@
       return;
     }
 
+    /* Если аккаунты не загружены (сотрудник) — сразу публикуем без выбора */
+    const folderAccounts = allAccounts.filter(a => a.folder_id === parseInt(folderId));
+    if (!folderAccounts.length) {
+      doPublish(null);
+      return;
+    }
+
+    openAccountModal(parseInt(folderId), folderAccounts);
+  }
+
+  /* ══════════════════════════════════════
+     Модальное окно выбора аккаунтов
+  ══════════════════════════════════════ */
+  function openAccountModal(folderId, accounts) {
+    modalFolderAccounts = accounts;
+    selectedAccountIds = new Set(); // ничего не выбрано по умолчанию
+
+    const folderName = document.getElementById('publishFolderSelect').selectedOptions[0]?.text || '';
+    document.getElementById('accountModalSubtitle').textContent =
+      `Папка: ${folderName} · ${accounts.length} акк.`;
+
+    buildAccountModalList();
+    document.getElementById('accountModalBackdrop').classList.add('open');
+  }
+
+  function closeAccountModal() {
+    document.getElementById('accountModalBackdrop').classList.remove('open');
+  }
+
+  function buildAccountModalList() {
+    const list = document.getElementById('accountModalList');
+
+    list.innerHTML = modalFolderAccounts.map(a => {
+      const sel = selectedAccountIds.has(a.id);
+      return `
+        <div class="account-option${sel ? ' selected' : ''}" onclick="selectAccount(${a.id})">
+          <div class="account-option-check"></div>
+          <span class="account-option-name">@${escHtml(a.username)}</span>
+        </div>`;
+    }).join('');
+
+    updateConfirmButton();
+  }
+
+  /* Радио-поведение: выбирается ровно один аккаунт */
+  function selectAccount(id) {
+    selectedAccountIds = new Set([id]);
+    buildAccountModalList();
+  }
+
+  function updateConfirmButton() {
+    document.getElementById('btnConfirmPublish').disabled = selectedAccountIds.size !== 1;
+  }
+
+  function confirmPublish() {
+    closeAccountModal();
+    doPublish([...selectedAccountIds]);
+  }
+
+  /* Фактическая отправка */
+  async function doPublish(accountIds) {
+    const fileInput = document.getElementById('fileInput');
+    const caption = document.getElementById('captionInput').value.trim();
+    const folderId = document.getElementById('publishFolderSelect').value;
+    const isTestMode = document.getElementById('isStoryToggle').checked;
+
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
     formData.append('caption', caption);
     formData.append('selected_folder_id', folderId);
-    formData.append('is_test_mode', isTestMode)
+    formData.append('is_test_mode', isTestMode);
+    if (!accountIds) {
+      return;
+    }
+    if (accountIds !== null) {
+      formData.append('selected_account_ids', JSON.stringify(accountIds));
+    }
 
     const btn = document.getElementById('btnPublish');
     btn.disabled = true;
@@ -1370,7 +1514,6 @@
 
       if (res.ok) {
         showPublishStatus(data.message || 'Видео отправлено!', 'ok');
-        /* Сбрасываем форму */
         document.getElementById('fileInput').value = '';
         document.getElementById('captionInput').value = '';
         const dz = document.getElementById('dropzone');
@@ -1760,6 +1903,11 @@
   }
 
   setInterval(loadViews, VIEWS_REFRESH_MS);
+
+  /* Close account modal on backdrop click */
+  document.getElementById('accountModalBackdrop').addEventListener('click', function(e) {
+    if (e.target === this) closeAccountModal();
+  });
 
   /* ── Init ── */
   (async () => {

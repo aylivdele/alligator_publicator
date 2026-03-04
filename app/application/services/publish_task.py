@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 import random
@@ -29,7 +30,11 @@ class PublishVideoTask:
       task.status = TaskStatus.processing
       db.commit()
       
-      accounts = db.query(InstagramAccount).join(Folder).where(Folder.id == task.folder_id).all()
+      if task.selected_account_ids:
+        ids = json.loads(task.selected_account_ids)
+        accounts = db.query(InstagramAccount).filter(InstagramAccount.id.in_(ids)).all()
+      else:
+        accounts = db.query(InstagramAccount).join(Folder).where(Folder.id == task.folder_id).all()
 
       if not accounts or len(accounts) == 0:
         raise Exception("Выбрано 0 акканутов")
@@ -67,7 +72,7 @@ class PublishVideoTask:
           db.commit()
 
           if i < len(accounts) - 1:
-              delay = random.randint(60, 180)
+              delay = random.randint(60, 120)
               self.logger.info("Sleeping %ds before next account", delay)
               time.sleep(delay)
 

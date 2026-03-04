@@ -112,6 +112,8 @@ class PublishTask(Base):
     stage = Column(Enum(TaskStage, name="task_stage_enum"), nullable=True)
     error = Column(Text)
 
+    selected_account_ids = Column(Text, nullable=True)  # JSON array of account IDs, None = all
+
     locked_at = Column(DateTime, nullable=True)
     locked_by = Column(String, nullable=True)
 
