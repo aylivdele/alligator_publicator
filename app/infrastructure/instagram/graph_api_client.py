@@ -49,6 +49,9 @@ class InstagramGraphApiClient(InstagramPublisher):
                 }
             )
             long_data = long_resp.json()
+            if "access_token" not in long_data:
+                raise Exception(long_data)
+
             return long_data["access_token"], long_data["expires_in"]
         
     async def refresh_long_lived_token(self, long_token: str):
@@ -62,7 +65,7 @@ class InstagramGraphApiClient(InstagramPublisher):
             )
             data = resp.json()
             if "access_token" not in data:
-                raise Exception(data.get("error", {}).get("message", str(data)))
+                raise Exception(data)
             return data["access_token"], data["expires_in"]
 
     async def get_reel_views(self, media_id: str, access_token: str) -> Optional[int]:
