@@ -24,6 +24,7 @@ class Settings(BaseSettings):
 
     TELEGRAM_BOT_TOKEN: str = ""
     TELEGRAM_CHANNEL_ID: str = ""
+    TELEGRAM_THREAD_ID: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",

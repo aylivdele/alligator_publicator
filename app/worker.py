@@ -36,10 +36,11 @@ def send_million_notification(settings: config.Settings, ar: TaskAccountResult) 
     try:
         requests.post(
             f"https://api.telegram.org/bot{settings.TELEGRAM_BOT_TOKEN}/sendMessage",
-            json={"chat_id": settings.TELEGRAM_CHANNEL_ID, "text": text, "parse_mode": "HTML"},
+            json={"chat_id": settings.TELEGRAM_CHANNEL_ID, "message_thread_id": settings.TELEGRAM_THREAD_ID, "text": text, "parse_mode": "HTML"},
             timeout=10,
         )
-    except Exception:
+    except Exception as e:
+        logging.getLogger(__name__).exception("Could not send notification to tg", e)
         pass
 
 
