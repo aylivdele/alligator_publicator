@@ -5,10 +5,12 @@ import os
 import random
 import time
 import uuid
+from typing import Optional
 
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
+from app.application.services.caption_uniqualizer import CaptionUniqualizerService
 from app.application.services.uniqalize_reel import ReelsUniqalizerService
 from app.domain.entities import Reel
 from app.domain.models import AccountResultStatus, Folder, InstagramAccount, PublishTask, TaskAccountResult, TaskStage, TaskStatus
@@ -16,9 +18,10 @@ from app.domain.repositories import InstagramPublisher
 from app.infrastructure.database.db import get_db
 
 class PublishVideoTask:
-  def __init__(self, uniqalizer: ReelsUniqalizerService, instagram_publisher: InstagramPublisher):
+  def __init__(self, uniqalizer: ReelsUniqalizerService, instagram_publisher: InstagramPublisher, caption_uniqualizer: Optional[CaptionUniqualizerService] = None):
     self.uniqalizer = uniqalizer
     self.instagram_publisher = instagram_publisher
+    self.caption_uniqualizer = caption_uniqualizer
     self.logger = logging.getLogger(__name__)
 
   def execute(self, task: PublishTask, db: Session):
@@ -44,9 +47,18 @@ class PublishVideoTask:
 
       urls = self.uniqalizer.execute(temp_path, len(accounts))
 
-      print(f"Urls of videos in s3: {urls}")
+      self.logger.info("Urls of videos in s3: %s", urls)
 
-      reels = [Reel(url, caption, is_trial=True if task.is_test_mode else False) for url in urls]
+      is_trial = bool(task.is_test_mode)
+      reels = []
+      for url in urls:
+          unique_caption = caption
+          if self.caption_uniqualizer and caption:
+              try:
+                  unique_caption = self.caption_uniqualizer.uniqualize(caption)
+              except Exception:
+                  self.logger.exception("Caption uniqualization failed, using original")
+          reels.append(Reel(url, unique_caption, is_trial=is_trial))
 
       task.stage = TaskStage.uploading
       db.commit()

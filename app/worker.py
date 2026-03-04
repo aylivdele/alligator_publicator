@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 import requests
 
 from app import config
+from app.application.services.caption_uniqualizer import CaptionUniqualizerService
 from app.application.services.publish_task import PublishVideoTask
 from app.application.services.uniqalize_reel import ReelsUniqalizerService
 from app.domain.models import PublishTask, TaskAccountResult, TaskStatus
@@ -114,6 +115,7 @@ def run_worker():
     generator = FFmpegUniqueReelGenerator()
     uniqalizer = ReelsUniqalizerService(generator, storage)
     graph_api = InstagramGraphApiClient(settings.GRAPH_API_CLIENT_ID, settings.GRAPH_API_CLIENT_SECRET, settings.GRAPH_API_REDIRECT_URI)
+    caption_uniqualizer = CaptionUniqualizerService(settings.ANTHROPIC_API_KEY) if settings.ANTHROPIC_API_KEY else None
 
     threading.Thread(target=run_views_updater, args=(graph_api, settings), daemon=True).start()
 
@@ -127,7 +129,7 @@ def run_worker():
                 time.sleep(3)
                 continue
 
-            processor = PublishVideoTask(uniqalizer, graph_api)
+            processor = PublishVideoTask(uniqalizer, graph_api, caption_uniqualizer)
             processor.execute(task, db)
 
         except Exception as e:

@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     TELEGRAM_CHANNEL_ID: str = ""
     TELEGRAM_THREAD_ID: str = ""
 
+    ANTHROPIC_API_KEY: str = ""
+
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore"
