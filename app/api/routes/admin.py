@@ -12,6 +12,7 @@ from app.api.deps import require_admin
 from app.domain.models import (
     InstagramAccount,
     PublishTask,
+    TaskAccountResult,
     User,
     UserFolderAccess,
     UserRole,
@@ -212,6 +213,7 @@ def create_admin_routes(graph_api: InstagramGraphApiClient) -> APIRouter:
         account = db.query(InstagramAccount).filter_by(id=account_id).first()
         if not account:
             raise HTTPException(status_code=404, detail="Аккаунт не найден")
+        db.query(TaskAccountResult).filter_by(account_id=account_id).update({"account_id": None})
         db.delete(account)
         db.commit()
         return {"success": True}
