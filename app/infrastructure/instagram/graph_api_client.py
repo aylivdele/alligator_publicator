@@ -72,12 +72,16 @@ class InstagramGraphApiClient(InstagramPublisher):
         async with httpx.AsyncClient() as client:
             resp = await client.get(
                 f"{self.BASE_URL}/{media_id}/insights",
-                params={"metric": "plays", "period": "lifetime", "access_token": access_token},
+                params={"metric": "views", "period": "lifetime", "access_token": access_token},
             )
             data = resp.json()
-            self.logger.debug("Reel views response for %s: %s", media_id, data)
+            if "error" in data:
+                msg = data["error"].get("message", "")
+                if "does not support" in msg:
+                    return None
+                raise Exception(data["error"])
             for item in data.get("data", []):
-                if item.get("name") == "plays":
+                if item.get("name") == "views":
                     if "value" in item:
                         return item["value"]
                     values = item.get("values", [])
