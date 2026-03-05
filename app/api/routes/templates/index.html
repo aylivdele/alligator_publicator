@@ -1091,6 +1091,20 @@
     background: #fff;
   }
 
+  /* Checkbox style for multi-select (admin) */
+  .account-option-check.multi {
+    border-radius: 5px;
+  }
+  .account-option.selected .account-option-check.multi::after {
+    content: '';
+    width: 9px; height: 5px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg) translate(1px, -1px);
+    border-radius: 0;
+    background: none;
+  }
+
   .account-option-name { font-size: 13px; color: var(--text); flex: 1; }
 
   /* ── Responsive ── */
@@ -1276,7 +1290,13 @@
       </button>
     </div>
     <div class="modal-body">
-      <div class="section-label">Выбери аккаунт</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div class="section-label" style="margin-bottom:0" id="accountModalSectionLabel">Выбери аккаунт</div>
+        <div id="accountModalBulkActions" style="display:none;gap:6px;align-items:center;">
+          <button onclick="selectAllAccounts()" style="padding:3px 10px;font-family:var(--font-mono);font-size:11px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;cursor:pointer;color:var(--text-secondary)">Все</button>
+          <button onclick="deselectAllAccounts()" style="padding:3px 10px;font-family:var(--font-mono);font-size:11px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;cursor:pointer;color:var(--text-secondary)">Сбросить</button>
+        </div>
+      </div>
       <div id="accountModalList"></div>
     </div>
     <div class="modal-footer">
@@ -1298,6 +1318,7 @@
   ══════════════════════════════════════ */
   let allAccounts = [];
   let activeFilterIds = new Set(); // пусто = "Все"
+  let isAdmin = false;
 
   /* Account modal state */
   let modalFolderAccounts = [];
@@ -1446,6 +1467,16 @@
     document.getElementById('accountModalSubtitle').textContent =
       `Папка: ${folderName} · ${accounts.length} акк.`;
 
+    const bulkActions = document.getElementById('accountModalBulkActions');
+    const sectionLabel = document.getElementById('accountModalSectionLabel');
+    if (isAdmin) {
+      bulkActions.style.display = 'flex';
+      sectionLabel.textContent = 'Выбери аккаунты';
+    } else {
+      bulkActions.style.display = 'none';
+      sectionLabel.textContent = 'Выбери аккаунт';
+    }
+
     buildAccountModalList();
     document.getElementById('accountModalBackdrop').classList.add('open');
   }
@@ -1456,12 +1487,13 @@
 
   function buildAccountModalList() {
     const list = document.getElementById('accountModalList');
+    const multiCheck = isAdmin ? ' multi' : '';
 
     list.innerHTML = modalFolderAccounts.map(a => {
       const sel = selectedAccountIds.has(a.id);
       return `
         <div class="account-option${sel ? ' selected' : ''}" onclick="selectAccount(${a.id})">
-          <div class="account-option-check"></div>
+          <div class="account-option-check${multiCheck}"></div>
           <span class="account-option-name">@${escHtml(a.username)}</span>
         </div>`;
     }).join('');
@@ -1469,14 +1501,30 @@
     updateConfirmButton();
   }
 
-  /* Радио-поведение: выбирается ровно один аккаунт */
+  /* Для админа — чекбокс (toggle), для обычного — радио (один аккаунт) */
   function selectAccount(id) {
-    selectedAccountIds = new Set([id]);
+    if (isAdmin) {
+      if (selectedAccountIds.has(id)) selectedAccountIds.delete(id);
+      else selectedAccountIds.add(id);
+    } else {
+      selectedAccountIds = new Set([id]);
+    }
+    buildAccountModalList();
+  }
+
+  function selectAllAccounts() {
+    modalFolderAccounts.forEach(a => selectedAccountIds.add(a.id));
+    buildAccountModalList();
+  }
+
+  function deselectAllAccounts() {
+    selectedAccountIds.clear();
     buildAccountModalList();
   }
 
   function updateConfirmButton() {
-    document.getElementById('btnConfirmPublish').disabled = selectedAccountIds.size !== 1;
+    const required = isAdmin ? selectedAccountIds.size >= 1 : selectedAccountIds.size === 1;
+    document.getElementById('btnConfirmPublish').disabled = !required;
   }
 
   function confirmPublish() {
@@ -1925,6 +1973,7 @@
     document.getElementById('headerUserBadge').textContent = me.username;
 
     if (me.role === 'admin') {
+      isAdmin = true;
       document.getElementById('adminPanelLink').style.display = 'inline';
       /* Admin sees everything — load accounts (which also builds folder select) */
       loadAccounts();
