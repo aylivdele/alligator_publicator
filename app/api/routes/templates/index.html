@@ -1544,9 +1544,6 @@
     formData.append('caption', caption);
     formData.append('selected_folder_id', folderId);
     formData.append('is_test_mode', isTestMode);
-    if (!accountIds) {
-      return;
-    }
     if (accountIds !== null) {
       formData.append('selected_account_ids', JSON.stringify(accountIds));
     }
@@ -1975,18 +1972,12 @@
     if (me.role === 'admin') {
       isAdmin = true;
       document.getElementById('adminPanelLink').style.display = 'inline';
-      /* Admin sees everything — load accounts (which also builds folder select) */
-      loadAccounts();
     } else {
-      /* Employees: hide accounts section */
+      /* Employees: hide accounts section table */
       document.querySelector('.accounts-section').style.display = 'none';
-      /* Populate publish folder select from /api/folders (already filtered server-side) */
-      try {
-        const folders = await fetch('/api/folders').then(r => r.json());
-        const folderMap = new Map(folders.map(f => [f.id, { id: f.id, label: f.name, count: f.count }]));
-        buildPublishFolderSelect(folderMap);
-      } catch {}
     }
+    /* Load accounts for all roles (builds folder select + enables modal for employees) */
+    loadAccounts();
 
     loadTasks();
     loadViews();
