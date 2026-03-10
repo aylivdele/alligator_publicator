@@ -15,6 +15,7 @@ from app.application.services.uniqalize_reel import ReelsUniqalizerService
 from app.domain.models import PublishTask, TaskAccountResult, TaskStatus
 from app.infrastructure.database.db import SessionLocal, get_db
 from app.infrastructure.instagram.graph_api_client import InstagramGraphApiClient
+from app.infrastructure.publishers.smmbox_api_client import SmmboxApiClient
 from app.infrastructure.storage.s3 import S3Storage
 from app.infrastructure.video.ffmpeg_processor import FFmpegUniqueReelGenerator
 
@@ -116,6 +117,7 @@ def run_worker():
     uniqalizer = ReelsUniqalizerService(generator, storage)
     graph_api = InstagramGraphApiClient(settings.GRAPH_API_CLIENT_ID, settings.GRAPH_API_CLIENT_SECRET, settings.GRAPH_API_REDIRECT_URI)
     caption_uniqualizer = CaptionUniqualizerService(settings.ANTHROPIC_API_KEY) if settings.ANTHROPIC_API_KEY else None
+    smmbox_client = SmmboxApiClient(settings.SMMBOX_API_KEY) if settings.SMMBOX_API_KEY else None
 
     threading.Thread(target=run_views_updater, args=(graph_api, settings), daemon=True).start()
 
@@ -129,7 +131,7 @@ def run_worker():
                 time.sleep(3)
                 continue
 
-            processor = PublishVideoTask(uniqalizer, graph_api, caption_uniqualizer)
+            processor = PublishVideoTask(uniqalizer, graph_api, caption_uniqualizer, smmbox_client)
             processor.execute(task, db)
 
         except Exception as e:

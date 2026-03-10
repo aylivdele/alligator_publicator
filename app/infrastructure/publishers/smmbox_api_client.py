@@ -1,19 +1,21 @@
-from datetime import datetime, time
 import zoneinfo
+from datetime import datetime
 
 import requests
-from app.domain.entities import Reel, UserGroup
+
+from app.domain.entities import GroupType, Reel, SocialType, UserGroup
 from app.domain.repositories import CombinedPublisher
 
 zn = zoneinfo.ZoneInfo("Europe/Moscow")
 
-class InstagramGraphApiClient(CombinedPublisher):
+
+class SmmboxApiClient(CombinedPublisher):
 
     BASE_URL = "https://smmbox.com/api/v1"
 
     def __init__(self, api_key: str):
         self.api_key = api_key
-    
+
     def _get_default_headers(self):
         return {
             "Content-Type": "application/json",
@@ -23,32 +25,50 @@ class InstagramGraphApiClient(CombinedPublisher):
     def publish_reel(self, reel: Reel, groups: list[UserGroup]):
         url = f"{self.BASE_URL}/posts/postpone"
 
-        date = (datetime.now(zn) - datetime(1970,1,1)).total_seconds()
+        now_ts = int(datetime.now(zn).timestamp())
 
-        posts = [{
-            "date": date,
-            "group": group
-        } for group in groups]
+        attachments = []
+        if reel.caption:
+            attachments.append({"type": "text", "text": reel.caption})
+        attachments.append({"type": "video", "url": reel.video_url})
 
-        response = requests.post(url, headers=self._get_default_headers())
+        posts = [
+            {
+                "date": now_ts,
+                "group": {
+                    "id": group.id,
+                    "social": group.social.value,
+                    "type": group.type.value,
+                },
+                "attachments": attachments,
+                "options": ["reels"],
+            }
+            for group in groups
+        ]
+
+        response = requests.post(url, json={"posts": posts}, headers=self._get_default_headers())
         response.raise_for_status()
 
-        json = response.json()
+        data = response.json()
+        if not data.get("success"):
+            raise Exception(f"SMMBox publish_reel failed: {data}")
 
-        if json["success"] != True:
-            raise Exception("Could not get user groups", json)
-        
-    
     def get_user_groups(self) -> list[UserGroup]:
         url = f"{self.BASE_URL}/groups"
 
         response = requests.get(url, headers=self._get_default_headers())
         response.raise_for_status()
 
-        json = response.json()
+        data = response.json()
+        if not data.get("success") or not data.get("response"):
+            raise Exception(f"Could not get user groups: {data}")
 
-        if json["success"] != True or not json["response"]:
-            raise Exception("Could not get user groups", json)
-        
-        return json["response"]
-
+        return [
+            UserGroup(
+                id=str(g["id"]),
+                type=GroupType(g.get("type", "unknown")),
+                social=SocialType(g.get("social", "unknown")),
+                name=g.get("name", ""),
+            )
+            for g in data["response"]
+        ]
