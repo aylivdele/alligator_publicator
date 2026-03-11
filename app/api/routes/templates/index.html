@@ -1317,6 +1317,7 @@
      State
   ══════════════════════════════════════ */
   let allAccounts = [];
+  let allFolders = [];
   let activeFilterIds = new Set(); // пусто = "Все"
   let isAdmin = false;
 
@@ -1344,8 +1345,12 @@
   ══════════════════════════════════════ */
   async function loadAccounts() {
     try {
-      const res = await fetch('/api/accounts');
-      allAccounts = await res.json();
+      const [accountsRes, foldersRes] = await Promise.all([
+        fetch('/api/accounts'),
+        fetch('/api/folders'),
+      ]);
+      allAccounts = await accountsRes.json();
+      allFolders = await foldersRes.json();
       buildFilterBar();
       applyFilter();
     } catch {
@@ -1397,20 +1402,19 @@
   }
 
   /* Наполняем <select> папками */
-  function buildPublishFolderSelect(folderMap) {
+  function buildPublishFolderSelect() {
     const sel = document.getElementById('publishFolderSelect');
     const prev = sel.value;
 
-    if (!folderMap || !folderMap.size) {
+    if (!allFolders.length) {
       sel.innerHTML = '<option value="">— нет папок —</option>';
       sel.disabled = true;
       return;
     }
 
     sel.disabled = false;
-    sel.innerHTML = [...folderMap.values()]
-      .filter(f => f.id !== null)           // исключаем "Без папки"
-      .map(f => `<option value="${f.id}">${escHtml(f.label)} (${f.count})</option>`)
+    sel.innerHTML = allFolders
+      .map(f => `<option value="${f.id}">${escHtml(f.name)} (${f.count})</option>`)
       .join('');
 
     /* Восстанавливаем предыдущий выбор если возможно */
@@ -1447,7 +1451,7 @@
     }
 
     /* Если аккаунты не загружены (сотрудник) — сразу публикуем без выбора */
-    const folderAccounts = allAccounts.filter(a => a.folder_id === parseInt(folderId));
+    const folderAccounts = allAccounts.filter(a => (a.folder_ids || []).includes(parseInt(folderId)));
     if (!folderAccounts.length) {
       doPublish(null);
       return;
@@ -1590,19 +1594,22 @@
 
   /* ── Строим фильтр-чипы ── */
   function buildFilterBar() {
+    /* Всегда обновляем селект папок в форме публикации */
+    buildPublishFolderSelect();
+
     if (!allAccounts.length) return;
 
-    /* Собираем уникальные папки из аккаунтов */
+    /* Собираем уникальные папки из аккаунтов через folder_ids */
     const folderMap = new Map();
+    const folderById = Object.fromEntries(allFolders.map(f => [f.id, f]));
     allAccounts.forEach(a => {
-      const key = a.folder_id ?? null;
-      const label = a.folder_name ?? 'Без папки';
-      if (!folderMap.has(key)) folderMap.set(key, { id: key, label, count: 0 });
-      folderMap.get(key).count++;
+      const ids = a.folder_ids && a.folder_ids.length ? a.folder_ids : [null];
+      ids.forEach(fid => {
+        const label = fid !== null ? (folderById[fid]?.name ?? `#${fid}`) : 'Без папки';
+        if (!folderMap.has(fid)) folderMap.set(fid, { id: fid, label, count: 0 });
+        folderMap.get(fid).count++;
+      });
     });
-
-    /* Всегда обновляем селект папок в форме публикации */
-    buildPublishFolderSelect(folderMap);
 
     /* Показываем панель фильтра только если есть хотя бы 2 разных «категории» */
     const filterBar = document.getElementById('filterBar');
@@ -1679,7 +1686,10 @@
     const isAll = activeFilterIds.size === 0;
     const visible = isAll
       ? allAccounts
-      : allAccounts.filter(a => activeFilterIds.has(a.folder_id ?? null));
+      : allAccounts.filter(a => {
+          const ids = a.folder_ids && a.folder_ids.length ? a.folder_ids : [null];
+          return ids.some(fid => activeFilterIds.has(fid));
+        });
 
     document.getElementById('accountsCount').textContent = visible.length;
     renderTable(visible);
@@ -1704,9 +1714,11 @@
       return;
     }
 
+    const folderById = Object.fromEntries(allFolders.map(f => [f.id, f]));
     const rows = accounts.map(a => {
-      const folderPill = a.folder_name
-        ? `<span class="folder-pill">${FOLDER_ICON}${escHtml(a.folder_name)}</span>`
+      const folderNames = (a.folder_ids || []).map(fid => folderById[fid]?.name).filter(Boolean);
+      const folderPill = folderNames.length
+        ? folderNames.map(n => `<span class="folder-pill">${FOLDER_ICON}${escHtml(n)}</span>`).join(' ')
         : `<span class="folder-pill no-folder">Без папки</span>`;
 
       const daysLeft = a.expires_at

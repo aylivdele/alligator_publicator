@@ -767,10 +767,12 @@ async function loadSmmboxAccounts() {
 
 function smmboxProfileUrl(social, name) {
   if (!name) return null;
-  switch ((social || '').toLowerCase()) {
+  switch (social) {
     case 'vk': return `https://vk.com/${encodeURIComponent(name)}`;
-    case 'yt': return `https://www.youtube.com/@${encodeURIComponent(name)}`;
+    case 'gg': return `https://www.youtube.com/@${encodeURIComponent(name)}`;
     case 'ok': return `https://ok.ru/${encodeURIComponent(name)}`;
+    case 'to': return `https://www.tiktok.com/@${encodeURIComponent(name)}`;
+    case 'ry': return `https://rutube.ru/channel/${encodeURIComponent(name)}/`;
     default: return null;
   }
 }
