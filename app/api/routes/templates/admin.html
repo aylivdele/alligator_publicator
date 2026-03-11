@@ -858,13 +858,13 @@ function renderTasks(tasks) {
     ).join('');
     const smmRows = smmResults.map(ar => {
       const smmTaskUrl = smmboxProfileUrl(ar.social, ar.name);
-      return `<div class="task-account-row">
+      return (`<div class="task-account-row">
         <span style="color:var(--muted);font-size:11px">[${escHtml(ar.social || '?')}]</span>
         ${smmTaskUrl ? `<a href="${escHtml(smmTaskUrl)}" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">${escHtml(ar.name || '?')}</a>` : `<span style="color:var(--text)">${escHtml(ar.name || '?')}</span>`}
         <span class="acc-status"><span class="badge badge-${ar.status === 'success' ? 'completed' : 'failed'}">${ar.status === 'success' ? 'OK' : 'Ошибка'}</span></span>
         ${ar.error ? `<div style="font-size:11px;color:var(--error);margin-top:2px">${escHtml(ar.error)}</div>` : ''}
-      </div>`
-    ).join('');
+      </div>`)
+    }).join('');
     const accountsHtml = totalResults
       ? `<details><summary>${totalResults} аккаунт(ов)</summary>
           <div class="task-accounts">${igRows}${smmRows}</div></details>`
