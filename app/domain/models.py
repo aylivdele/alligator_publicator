@@ -102,6 +102,18 @@ class SmmboxAccount(Base):
     folder = relationship("Folder", back_populates="smmbox_accounts")
 
 
+class InstagramAccountFolder(Base):
+    __tablename__ = "instagram_account_folders"
+    account_id = Column(Integer, ForeignKey("instagram_accounts.id", ondelete="CASCADE"), primary_key=True)
+    folder_id = Column(Integer, ForeignKey("folders.id", ondelete="CASCADE"), primary_key=True)
+
+
+class SmmboxAccountFolder(Base):
+    __tablename__ = "smmbox_account_folders"
+    account_id = Column(Integer, ForeignKey("smmbox_accounts.id", ondelete="CASCADE"), primary_key=True)
+    folder_id = Column(Integer, ForeignKey("folders.id", ondelete="CASCADE"), primary_key=True)
+
+
 class TaskStatus(str, enum.Enum):
     pending = "pending"
     processing = "processing"

@@ -11,9 +11,12 @@ from sqlalchemy.orm import Session
 from app.api.deps import require_admin
 from app.domain.entities import GroupType, SocialType
 from app.domain.models import (
+    Folder,
     InstagramAccount,
+    InstagramAccountFolder,
     PublishTask,
     SmmboxAccount,
+    SmmboxAccountFolder,
     TaskAccountResult,
     User,
     UserFolderAccess,
@@ -148,8 +151,13 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
     ):
         query = db.query(InstagramAccount)
         if folder_id is not None:
-            query = query.filter_by(folder_id=folder_id)
+            query = (
+                query
+                .join(InstagramAccountFolder, InstagramAccount.id == InstagramAccountFolder.account_id)
+                .filter(InstagramAccountFolder.folder_id == folder_id)
+            )
         accounts = query.all()
+
         def _days_left(a: InstagramAccount) -> Optional[int]:
             base = a.updated_at or a.created_at
             if base is None or a.expires_in is None:
@@ -159,17 +167,59 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
             expires_at = base.replace(tzinfo=timezone.utc) + timedelta(seconds=int(a.expires_in))
             return max(0, (expires_at - datetime.now(timezone.utc)).days)
 
-        return [
-            {
+        def _folders(a: InstagramAccount):
+            rows = db.query(InstagramAccountFolder, Folder).join(
+                Folder, InstagramAccountFolder.folder_id == Folder.id
+            ).filter(InstagramAccountFolder.account_id == a.id).all()
+            return [r.Folder.id for r in rows], [r.Folder.name for r in rows]
+
+        result = []
+        for a in accounts:
+            folder_ids, folder_names = _folders(a)
+            result.append({
                 "id": a.id,
                 "instagram_id": a.instagram_id,
                 "username": a.username,
-                "folder_id": a.folder_id,
-                "folder_name": a.folder.name if a.folder else None,
+                "folder_ids": folder_ids,
+                "folder_names": folder_names,
                 "days_left": _days_left(a),
-            }
-            for a in accounts
-        ]
+            })
+        return result
+
+    @router.post("/api/accounts/{account_id}/folders")
+    async def add_account_folder(
+        account_id: int,
+        request: Request,
+        db: Session = Depends(get_db),
+        _: User = Depends(require_admin),
+    ):
+        data = await request.json()
+        folder_id = data.get("folder_id")
+        if not folder_id:
+            raise HTTPException(status_code=400, detail="folder_id обязателен")
+        account = db.query(InstagramAccount).filter_by(id=account_id).first()
+        if not account:
+            raise HTTPException(status_code=404, detail="Аккаунт не найден")
+        if not db.query(Folder).filter_by(id=folder_id).first():
+            raise HTTPException(status_code=404, detail="Папка не найдена")
+        existing = db.query(InstagramAccountFolder).filter_by(account_id=account_id, folder_id=folder_id).first()
+        if not existing:
+            db.add(InstagramAccountFolder(account_id=account_id, folder_id=folder_id))
+            db.commit()
+        return {"success": True}
+
+    @router.delete("/api/accounts/{account_id}/folders/{folder_id}")
+    async def remove_account_folder(
+        account_id: int,
+        folder_id: int,
+        db: Session = Depends(get_db),
+        _: User = Depends(require_admin),
+    ):
+        link = db.query(InstagramAccountFolder).filter_by(account_id=account_id, folder_id=folder_id).first()
+        if link:
+            db.delete(link)
+            db.commit()
+        return {"success": True}
 
     @router.post("/api/accounts/{account_id}/check-connection")
     async def check_connection(
@@ -265,32 +315,60 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
     @router.get("/api/smmbox-accounts")
     async def list_smmbox_accounts(db: Session = Depends(get_db), _: User = Depends(require_admin)):
         accounts = db.query(SmmboxAccount).order_by(SmmboxAccount.social, SmmboxAccount.name).all()
-        return [
-            {
+
+        def _folders(a: SmmboxAccount):
+            rows = db.query(SmmboxAccountFolder, Folder).join(
+                Folder, SmmboxAccountFolder.folder_id == Folder.id
+            ).filter(SmmboxAccountFolder.account_id == a.id).all()
+            return [r.Folder.id for r in rows], [r.Folder.name for r in rows]
+
+        result = []
+        for a in accounts:
+            folder_ids, folder_names = _folders(a)
+            result.append({
                 "id": a.id,
                 "smmbox_id": a.smmbox_id,
                 "social": a.social,
                 "type": a.type,
                 "name": a.name,
-                "folder_id": a.folder_id,
-                "folder_name": a.folder.name if a.folder else None,
-            }
-            for a in accounts
-        ]
+                "folder_ids": folder_ids,
+                "folder_names": folder_names,
+            })
+        return result
 
-    @router.patch("/api/smmbox-accounts/{account_id}")
-    async def update_smmbox_account(
+    @router.post("/api/smmbox-accounts/{account_id}/folders")
+    async def add_smmbox_folder(
         account_id: int,
         request: Request,
         db: Session = Depends(get_db),
         _: User = Depends(require_admin),
     ):
         data = await request.json()
+        folder_id = data.get("folder_id")
+        if not folder_id:
+            raise HTTPException(status_code=400, detail="folder_id обязателен")
         acc = db.query(SmmboxAccount).filter_by(id=account_id).first()
         if not acc:
             raise HTTPException(status_code=404, detail="Аккаунт не найден")
-        acc.folder_id = data.get("folder_id") or None
-        db.commit()
+        if not db.query(Folder).filter_by(id=folder_id).first():
+            raise HTTPException(status_code=404, detail="Папка не найдена")
+        existing = db.query(SmmboxAccountFolder).filter_by(account_id=account_id, folder_id=folder_id).first()
+        if not existing:
+            db.add(SmmboxAccountFolder(account_id=account_id, folder_id=folder_id))
+            db.commit()
+        return {"success": True}
+
+    @router.delete("/api/smmbox-accounts/{account_id}/folders/{folder_id}")
+    async def remove_smmbox_folder(
+        account_id: int,
+        folder_id: int,
+        db: Session = Depends(get_db),
+        _: User = Depends(require_admin),
+    ):
+        link = db.query(SmmboxAccountFolder).filter_by(account_id=account_id, folder_id=folder_id).first()
+        if link:
+            db.delete(link)
+            db.commit()
         return {"success": True}
 
     @router.delete("/api/smmbox-accounts/{account_id}")

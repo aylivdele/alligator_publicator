@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app.application.services.caption_uniqualizer import CaptionUniqualizerService
 from app.application.services.uniqalize_reel import ReelsUniqalizerService
 from app.domain.entities import GroupType, Reel, SocialType, UserGroup
-from app.domain.models import AccountResultStatus, Folder, InstagramAccount, PublishTask, SmmboxAccount, TaskAccountResult, TaskStage, TaskStatus
+from app.domain.models import AccountResultStatus, InstagramAccount, InstagramAccountFolder, PublishTask, SmmboxAccount, SmmboxAccountFolder, TaskAccountResult, TaskStage, TaskStatus
 from app.domain.repositories import CombinedPublisher, InstagramPublisher
 
 
@@ -77,12 +77,22 @@ class PublishVideoTask:
                 ids = json.loads(task.selected_account_ids)
                 instagram_accounts = db.query(InstagramAccount).filter(InstagramAccount.id.in_(ids)).all()
             else:
-                instagram_accounts = db.query(InstagramAccount).join(Folder).where(Folder.id == task.folder_id).all()
+                instagram_accounts = (
+                    db.query(InstagramAccount)
+                    .join(InstagramAccountFolder, InstagramAccount.id == InstagramAccountFolder.account_id)
+                    .filter(InstagramAccountFolder.folder_id == task.folder_id)
+                    .all()
+                )
 
             # --- Получаем SMMBox-аккаунты из БД для данной папки ---
             smmbox_groups: list[UserGroup] = []
-            if self.smmbox_client:
-                smmbox_db = db.query(SmmboxAccount).filter_by(folder_id=task.folder_id).all()
+            if self.smmbox_client and not task.is_test_mode:
+                smmbox_db = (
+                    db.query(SmmboxAccount)
+                    .join(SmmboxAccountFolder, SmmboxAccount.id == SmmboxAccountFolder.account_id)
+                    .filter(SmmboxAccountFolder.folder_id == task.folder_id)
+                    .all()
+                )
                 smmbox_groups = [
                     UserGroup(
                         id=a.smmbox_id,
