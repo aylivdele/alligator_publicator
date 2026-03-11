@@ -10,7 +10,6 @@ class Reel:
     thumbnail_url: Optional[str] = None
     is_trial: Optional[bool] = False
 
-@dataclass
 class GroupType(Enum):
     USER = 'user'
     GROUP = 'group'
@@ -21,7 +20,6 @@ class GroupType(Enum):
     def _missing_(cls, value):
         return cls.UNKNOWN
 
-@dataclass
 class SocialType(Enum):
     INSTAGRAM = 'io'
     VK = 'vk'
