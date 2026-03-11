@@ -3,11 +3,12 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_admin, require_auth
-from app.domain.models import Folder, InstagramAccount, InstagramAccountFolder, User, UserRole
+from app.domain.models import FolderInstagramAccount, InstagramAccount, User, UserRole
 from app.infrastructure.database.db import get_db
 
 
 router = APIRouter()
+
 
 @router.get("/accounts/{instagram_id}/token/")
 async def get_token(instagram_id: str, db: Session = Depends(get_db), _: User = Depends(require_admin)):
@@ -15,6 +16,7 @@ async def get_token(instagram_id: str, db: Session = Depends(get_db), _: User = 
     if not account:
         return {"error": "Аккаунт не найден"}
     return {"access_token": account.access_token, "username": account.username}
+
 
 @router.get("/accounts")
 async def get_accounts(db: Session = Depends(get_db), current_user: User = Depends(require_auth)):
@@ -26,9 +28,12 @@ async def get_accounts(db: Session = Depends(get_db), current_user: User = Depen
                 "instagram_id": a.instagram_id,
                 "username": a.username,
                 "access_token": a.access_token[:10],
-                "expires_in": a.expires_in,
+                "expires_at": str(a.expires_at) if a.expires_at else None,
                 "created_at": str(a.created_at),
-                "folder_ids": [r.folder_id for r in db.query(InstagramAccountFolder).filter_by(account_id=a.id).all()],
+                "folder_ids": [
+                    r.folder_id
+                    for r in db.query(FolderInstagramAccount).filter_by(instagram_account_id=a.id).all()
+                ],
             }
             for a in accounts
         ]
@@ -36,8 +41,8 @@ async def get_accounts(db: Session = Depends(get_db), current_user: User = Depen
         accessible_folder_ids = {fa.folder_id for fa in current_user.folder_accesses}
         accounts = (
             db.query(InstagramAccount)
-            .join(InstagramAccountFolder, InstagramAccount.id == InstagramAccountFolder.account_id)
-            .filter(InstagramAccountFolder.folder_id.in_(accessible_folder_ids))
+            .join(FolderInstagramAccount, InstagramAccount.id == FolderInstagramAccount.instagram_account_id)
+            .filter(FolderInstagramAccount.folder_id.in_(accessible_folder_ids))
             .distinct()
             .all()
         )
@@ -45,7 +50,10 @@ async def get_accounts(db: Session = Depends(get_db), current_user: User = Depen
             {
                 "id": a.id,
                 "username": a.username,
-                "folder_ids": [r.folder_id for r in db.query(InstagramAccountFolder).filter_by(account_id=a.id).all()],
+                "folder_ids": [
+                    r.folder_id
+                    for r in db.query(FolderInstagramAccount).filter_by(instagram_account_id=a.id).all()
+                ],
             }
             for a in accounts
         ]

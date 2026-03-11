@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.api.deps import require_auth
-from app.domain.models import Folder, PublishTask, TaskAccountResult, User, UserRole
+from app.domain.models import Folder, PublishTask, TaskInstagramResult, User, UserRole
 from app.infrastructure.database.db import get_db
 
 
@@ -36,17 +36,17 @@ def create_views_router(settings: config.Settings) -> APIRouter:
         result = []
         for task, folder_name in rows:
             accounts = []
-            for ar in task.account_results:
-                if ar.media_id is None:
+            for r in task.instagram_results:
+                if r.media_id is None:
                     continue
                 entry: dict = {
-                    "instagram_id": ar.account.instagram_id if ar.account else None,
-                    "view_count": ar.view_count,
-                    "views_updated_at": ar.views_updated_at,
-                    "permalink": ar.permalink,
+                    "instagram_id": r.account.instagram_id if r.account else None,
+                    "view_count": r.view_count,
+                    "views_updated_at": r.views_updated_at,
+                    "permalink": r.permalink,
                 }
                 if is_admin:
-                    entry["username"] = ar.account.username if ar.account else None
+                    entry["username"] = r.account.username if r.account else None
                 accounts.append(entry)
 
             if not accounts:

@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request
@@ -12,12 +12,12 @@ from app.api.deps import require_admin
 from app.domain.entities import GroupType, SocialType
 from app.domain.models import (
     Folder,
+    FolderInstagramAccount,
+    FolderSmmboxAccount,
     InstagramAccount,
-    InstagramAccountFolder,
     PublishTask,
     SmmboxAccount,
-    SmmboxAccountFolder,
-    TaskAccountResult,
+    TaskInstagramResult,
     User,
     UserFolderAccess,
     UserRole,
@@ -141,7 +141,7 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
             db.commit()
         return {"success": True}
 
-    # ─── Accounts ─────────────────────────────────────────────────────────────
+    # ─── Instagram accounts ───────────────────────────────────────────────────
 
     @router.get("/api/accounts")
     async def list_accounts(
@@ -153,24 +153,27 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
         if folder_id is not None:
             query = (
                 query
-                .join(InstagramAccountFolder, InstagramAccount.id == InstagramAccountFolder.account_id)
-                .filter(InstagramAccountFolder.folder_id == folder_id)
+                .join(FolderInstagramAccount,
+                      InstagramAccount.id == FolderInstagramAccount.instagram_account_id)
+                .filter(FolderInstagramAccount.folder_id == folder_id)
             )
         accounts = query.all()
 
         def _days_left(a: InstagramAccount) -> Optional[int]:
-            base = a.updated_at or a.created_at
-            if base is None or a.expires_in is None:
+            if a.expires_at is None:
                 return None
-            if base.tzinfo is None:
-                base = base.replace(tzinfo=timezone.utc)
-            expires_at = base.replace(tzinfo=timezone.utc) + timedelta(seconds=int(a.expires_in))
-            return max(0, (expires_at - datetime.now(timezone.utc)).days)
+            exp = a.expires_at
+            if exp.tzinfo is None:
+                exp = exp.replace(tzinfo=timezone.utc)
+            return max(0, (exp - datetime.now(timezone.utc)).days)
 
         def _folders(a: InstagramAccount):
-            rows = db.query(InstagramAccountFolder, Folder).join(
-                Folder, InstagramAccountFolder.folder_id == Folder.id
-            ).filter(InstagramAccountFolder.account_id == a.id).all()
+            rows = (
+                db.query(FolderInstagramAccount, Folder)
+                .join(Folder, FolderInstagramAccount.folder_id == Folder.id)
+                .filter(FolderInstagramAccount.instagram_account_id == a.id)
+                .all()
+            )
             return [r.Folder.id for r in rows], [r.Folder.name for r in rows]
 
         result = []
@@ -202,9 +205,11 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
             raise HTTPException(status_code=404, detail="Аккаунт не найден")
         if not db.query(Folder).filter_by(id=folder_id).first():
             raise HTTPException(status_code=404, detail="Папка не найдена")
-        existing = db.query(InstagramAccountFolder).filter_by(account_id=account_id, folder_id=folder_id).first()
+        existing = db.query(FolderInstagramAccount).filter_by(
+            instagram_account_id=account_id, folder_id=folder_id
+        ).first()
         if not existing:
-            db.add(InstagramAccountFolder(account_id=account_id, folder_id=folder_id))
+            db.add(FolderInstagramAccount(instagram_account_id=account_id, folder_id=folder_id))
             db.commit()
         return {"success": True}
 
@@ -215,7 +220,9 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
         db: Session = Depends(get_db),
         _: User = Depends(require_admin),
     ):
-        link = db.query(InstagramAccountFolder).filter_by(account_id=account_id, folder_id=folder_id).first()
+        link = db.query(FolderInstagramAccount).filter_by(
+            instagram_account_id=account_id, folder_id=folder_id
+        ).first()
         if link:
             db.delete(link)
             db.commit()
@@ -244,13 +251,14 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
         db: Session = Depends(get_db),
         _: User = Depends(require_admin),
     ):
+        from datetime import timedelta
         account = db.query(InstagramAccount).filter_by(id=account_id).first()
         if not account:
             raise HTTPException(status_code=404, detail="Аккаунт не найден")
         try:
             new_token, new_expires_in = await graph_api.refresh_long_lived_token(str(account.access_token))
             account.access_token = new_token
-            account.expires_in = new_expires_in
+            account.expires_at = datetime.now(timezone.utc) + timedelta(seconds=int(new_expires_in))
             account.updated_at = datetime.now(timezone.utc)
             db.commit()
             return {"success": True, "expires_in": new_expires_in}
@@ -266,21 +274,11 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
         account = db.query(InstagramAccount).filter_by(id=account_id).first()
         if not account:
             raise HTTPException(status_code=404, detail="Аккаунт не найден")
-        db.query(TaskAccountResult).filter_by(account_id=account_id).update({"account_id": None})
+        # Обнуляем ссылку в результатах перед удалением аккаунта
+        db.query(TaskInstagramResult).filter_by(instagram_account_id=account_id).update(
+            {"instagram_account_id": None}
+        )
         db.delete(account)
-        db.commit()
-        return {"success": True}
-
-    @router.patch("/api/accounts/{account_id}/disconnect")
-    async def disconnect_account(
-        account_id: int,
-        db: Session = Depends(get_db),
-        _: User = Depends(require_admin),
-    ):
-        account = db.query(InstagramAccount).filter_by(id=account_id).first()
-        if not account:
-            raise HTTPException(status_code=404, detail="Аккаунт не найден")
-        account.folder_id = None
         db.commit()
         return {"success": True}
 
@@ -317,9 +315,12 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
         accounts = db.query(SmmboxAccount).order_by(SmmboxAccount.social, SmmboxAccount.name).all()
 
         def _folders(a: SmmboxAccount):
-            rows = db.query(SmmboxAccountFolder, Folder).join(
-                Folder, SmmboxAccountFolder.folder_id == Folder.id
-            ).filter(SmmboxAccountFolder.account_id == a.id).all()
+            rows = (
+                db.query(FolderSmmboxAccount, Folder)
+                .join(Folder, FolderSmmboxAccount.folder_id == Folder.id)
+                .filter(FolderSmmboxAccount.smmbox_account_id == a.id)
+                .all()
+            )
             return [r.Folder.id for r in rows], [r.Folder.name for r in rows]
 
         result = []
@@ -352,9 +353,11 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
             raise HTTPException(status_code=404, detail="Аккаунт не найден")
         if not db.query(Folder).filter_by(id=folder_id).first():
             raise HTTPException(status_code=404, detail="Папка не найдена")
-        existing = db.query(SmmboxAccountFolder).filter_by(account_id=account_id, folder_id=folder_id).first()
+        existing = db.query(FolderSmmboxAccount).filter_by(
+            smmbox_account_id=account_id, folder_id=folder_id
+        ).first()
         if not existing:
-            db.add(SmmboxAccountFolder(account_id=account_id, folder_id=folder_id))
+            db.add(FolderSmmboxAccount(smmbox_account_id=account_id, folder_id=folder_id))
             db.commit()
         return {"success": True}
 
@@ -365,7 +368,9 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
         db: Session = Depends(get_db),
         _: User = Depends(require_admin),
     ):
-        link = db.query(SmmboxAccountFolder).filter_by(account_id=account_id, folder_id=folder_id).first()
+        link = db.query(FolderSmmboxAccount).filter_by(
+            smmbox_account_id=account_id, folder_id=folder_id
+        ).first()
         if link:
             db.delete(link)
             db.commit()
@@ -390,15 +395,27 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
         tasks = db.query(PublishTask).order_by(PublishTask.created_at.desc()).all()
         result = []
         for task in tasks:
-            account_results = []
-            for ar in task.account_results:
-                acc = ar.account
-                account_results.append({
-                    "account_id": ar.account_id,
+            ig_results = []
+            for r in task.instagram_results:
+                acc = r.account
+                ig_results.append({
+                    "account_id": r.instagram_account_id,
                     "instagram_id": acc.instagram_id if acc else None,
                     "username": acc.username if acc else None,
-                    "status": ar.status,
-                    "error": ar.error,
+                    "status": r.status,
+                    "error": r.error,
+                    "media_id": r.media_id,
+                    "permalink": r.permalink,
+                })
+            smm_results = []
+            for r in task.smmbox_results:
+                acc = r.account
+                smm_results.append({
+                    "account_id": r.smmbox_account_id,
+                    "name": acc.name if acc else None,
+                    "social": acc.social if acc else None,
+                    "status": r.status,
+                    "error": r.error,
                 })
             result.append({
                 "id": str(task.id),
@@ -410,7 +427,8 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
                 "is_test_mode": task.is_test_mode,
                 "locked_by": task.locked_by,
                 "created_at": str(task.created_at),
-                "account_results": account_results,
+                "instagram_results": ig_results,
+                "smmbox_results": smm_results,
             })
         return result
 

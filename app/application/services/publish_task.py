@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import os
 import random
@@ -13,7 +12,18 @@ from sqlalchemy.orm import Session
 from app.application.services.caption_uniqualizer import CaptionUniqualizerService
 from app.application.services.uniqalize_reel import ReelsUniqalizerService
 from app.domain.entities import GroupType, Reel, SocialType, UserGroup
-from app.domain.models import AccountResultStatus, InstagramAccount, InstagramAccountFolder, PublishTask, SmmboxAccount, SmmboxAccountFolder, TaskAccountResult, TaskStage, TaskStatus
+from app.domain.models import (
+    AccountResultStatus,
+    FolderInstagramAccount,
+    FolderSmmboxAccount,
+    InstagramAccount,
+    PublishTask,
+    SmmboxAccount,
+    TaskInstagramResult,
+    TaskSmmboxResult,
+    TaskStage,
+    TaskStatus,
+)
 from app.domain.repositories import CombinedPublisher, InstagramPublisher
 
 
@@ -39,7 +49,6 @@ class PublishVideoTask:
         """
         Объединяет Instagram-аккаунты и SMMBox-группы в публикационные группы.
         В каждой группе — максимум 1 аккаунт каждого типа соцсети.
-        Возвращает список групп, каждая группа — список кортежей ('instagram', account) | ('smmbox', group).
         """
         buckets: dict[SocialType, list[tuple]] = defaultdict(list)
 
@@ -64,6 +73,42 @@ class PublishVideoTask:
                 self.logger.exception("Caption uniqualization failed, using original")
         return caption
 
+    def _get_instagram_accounts(self, task: PublishTask, db: Session) -> list[InstagramAccount]:
+        """Возвращает Instagram-аккаунты: выбранные вручную или все из папки."""
+        selected = task.selected_instagram_accounts
+        if selected:
+            return selected
+        return (
+            db.query(InstagramAccount)
+            .join(FolderInstagramAccount,
+                  InstagramAccount.id == FolderInstagramAccount.instagram_account_id)
+            .filter(FolderInstagramAccount.folder_id == task.folder_id)
+            .all()
+        )
+
+    def _get_smmbox_accounts(self, task: PublishTask, db: Session) -> list[UserGroup]:
+        """Возвращает SMMBox-группы: выбранные вручную или все из папки."""
+        selected = task.selected_smmbox_accounts
+        if selected:
+            smmbox_db = selected
+        else:
+            smmbox_db = (
+                db.query(SmmboxAccount)
+                .join(FolderSmmboxAccount,
+                      SmmboxAccount.id == FolderSmmboxAccount.smmbox_account_id)
+                .filter(FolderSmmboxAccount.folder_id == task.folder_id)
+                .all()
+            )
+        return [
+            UserGroup(
+                id=a.smmbox_id,
+                social=SocialType(a.social),
+                type=GroupType(a.type),
+                name=a.name,
+            )
+            for a in smmbox_db
+        ]
+
     def execute(self, task: PublishTask, db: Session):
         temp_path = task.file_path
         caption = task.caption
@@ -72,38 +117,12 @@ class PublishVideoTask:
             task.status = TaskStatus.processing
             db.commit()
 
-            # --- Получаем Instagram-аккаунты ---
-            if task.selected_account_ids:
-                ids = json.loads(task.selected_account_ids)
-                instagram_accounts = db.query(InstagramAccount).filter(InstagramAccount.id.in_(ids)).all()
-            else:
-                instagram_accounts = (
-                    db.query(InstagramAccount)
-                    .join(InstagramAccountFolder, InstagramAccount.id == InstagramAccountFolder.account_id)
-                    .filter(InstagramAccountFolder.folder_id == task.folder_id)
-                    .all()
-                )
+            instagram_accounts = self._get_instagram_accounts(task, db)
 
-            # --- Получаем SMMBox-аккаунты из БД для данной папки ---
             smmbox_groups: list[UserGroup] = []
             if self.smmbox_client and not task.is_test_mode:
-                smmbox_db = (
-                    db.query(SmmboxAccount)
-                    .join(SmmboxAccountFolder, SmmboxAccount.id == SmmboxAccountFolder.account_id)
-                    .filter(SmmboxAccountFolder.folder_id == task.folder_id)
-                    .all()
-                )
-                smmbox_groups = [
-                    UserGroup(
-                        id=a.smmbox_id,
-                        social=SocialType(a.social),
-                        type=GroupType(a.type),
-                        name=a.name,
-                    )
-                    for a in smmbox_db
-                ]
+                smmbox_groups = self._get_smmbox_accounts(task, db)
 
-            # --- Строим публикационные группы ---
             publish_groups = self._build_publish_groups(instagram_accounts, smmbox_groups)
 
             if not publish_groups:
@@ -112,7 +131,6 @@ class PublishVideoTask:
             task.stage = TaskStage.processing
             db.commit()
 
-            # Уникализируем по 1 видео на каждую группу
             urls = self.uniqalizer.execute(temp_path, len(publish_groups))
             self.logger.info("Urls of videos in s3: %s", urls)
 
@@ -125,7 +143,6 @@ class PublishVideoTask:
                 unique_caption = self._uniqualize_caption(caption)
                 reel = Reel(url, unique_caption, is_trial=is_trial)
 
-                # Собираем SMMBox-группы этой publish-группы для батч-вызова
                 smmbox_items: list[UserGroup] = []
 
                 for (source, item) in group:
@@ -133,32 +150,59 @@ class PublishVideoTask:
                         account: InstagramAccount = item
                         try:
                             media_id = asyncio.run(self.instagram_publisher.publish_reel(reel, account))
-                            ar = TaskAccountResult(
+                            result = TaskInstagramResult(
                                 task_id=task.id,
-                                account_id=account.id,
+                                instagram_account_id=account.id,
                                 status=AccountResultStatus.success,
                                 media_id=media_id,
                             )
                         except Exception as e:
-                            self.logger.exception("Instagram publish failed for account %s", account.instagram_id, exc_info=e)
-                            ar = TaskAccountResult(
+                            self.logger.exception(
+                                "Instagram publish failed for account %s", account.instagram_id, exc_info=e
+                            )
+                            result = TaskInstagramResult(
                                 task_id=task.id,
-                                account_id=account.id,
+                                instagram_account_id=account.id,
                                 status=AccountResultStatus.failed,
                                 error=str(e),
                             )
-                        db.add(ar)
+                        db.add(result)
                         db.commit()
 
                     elif source == 'smmbox':
                         smmbox_items.append(item)
 
-                if smmbox_items:
+                if smmbox_items and self.smmbox_client:
+                    # Получаем SmmboxAccount из БД по smmbox_id для записи результатов
+                    smmbox_id_to_db: dict[str, SmmboxAccount] = {}
+                    for grp in smmbox_items:
+                        db_acc = db.query(SmmboxAccount).filter_by(smmbox_id=grp.id).first()
+                        if db_acc:
+                            smmbox_id_to_db[grp.id] = db_acc
+
                     try:
                         self.smmbox_client.publish_reel(reel, smmbox_items)
                         self.logger.info("SMMBox publish OK for groups: %s", [g.id for g in smmbox_items])
-                    except Exception:
-                        self.logger.exception("SMMBox publish failed for groups %s", [g.id for g in smmbox_items])
+                        for grp in smmbox_items:
+                            db_acc = smmbox_id_to_db.get(grp.id)
+                            db.add(TaskSmmboxResult(
+                                task_id=task.id,
+                                smmbox_account_id=db_acc.id if db_acc else None,
+                                status=AccountResultStatus.success,
+                            ))
+                    except Exception as e:
+                        self.logger.exception(
+                            "SMMBox publish failed for groups %s", [g.id for g in smmbox_items]
+                        )
+                        for grp in smmbox_items:
+                            db_acc = smmbox_id_to_db.get(grp.id)
+                            db.add(TaskSmmboxResult(
+                                task_id=task.id,
+                                smmbox_account_id=db_acc.id if db_acc else None,
+                                status=AccountResultStatus.failed,
+                                error=str(e),
+                            ))
+                    db.commit()
 
                 if i < len(publish_groups) - 1:
                     delay = random.randint(60, 120)

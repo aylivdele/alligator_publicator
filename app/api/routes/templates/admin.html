@@ -642,10 +642,22 @@ function renderAccounts(accounts) {
       daysHtml = `<span class="badge badge-success">${a.days_left} дн.</span>`;
     }
 
+    const folderPills = (a.folder_names || []).map((name, i) =>
+      `<span class="folder-pill">${escHtml(name)}<button onclick="removeAccountFolder(${a.id},${a.folder_ids[i]})" title="Отвязать">×</button></span>`
+    ).join('');
+    const folderAddOptions = allFolders
+      .filter(f => !(a.folder_ids || []).includes(f.id))
+      .map(f => `<option value="${f.id}">${escHtml(f.name)}</option>`).join('');
+
     return `<tr>
       <td style="font-size:12px;color:var(--muted)">${escHtml(a.instagram_id)}</td>
-      <td>@${escHtml(a.username)}</td>
-      <td>${a.folder_name ? escHtml(a.folder_name) : '<span style="color:var(--muted)">—</span>'}</td>
+      <td><a href="https://www.instagram.com/${encodeURIComponent(a.username)}/" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">@${escHtml(a.username)}</a></td>
+      <td>
+        <div class="folder-pills">
+          ${folderPills || '<span style="color:var(--muted);font-size:12px">—</span>'}
+          ${folderAddOptions ? `<select onchange="addAccountFolderFromSelect(${a.id},this)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer"><option value="">+ папка</option>${folderAddOptions}</select>` : ''}
+        </div>
+      </td>
       <td>
         <div id="status-${a.id}" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
           ${connHtml}
@@ -657,7 +669,6 @@ function renderAccounts(accounts) {
         <div style="display:flex;gap:6px;flex-wrap:wrap">
           <button class="btn-warn btn-sm" onclick="checkConnection(${a.id})">Проверить</button>
           <button class="btn-secondary btn-sm" onclick="refreshToken(${a.id})">Обновить токен</button>
-          ${a.folder_id ? `<button class="btn-secondary btn-sm" onclick="disconnectAccount(${a.id})">Отключить</button>` : ''}
           <button class="btn-danger btn-sm" onclick="deleteAccount(${a.id})">Удалить</button>
         </div>
       </td>
@@ -695,11 +706,22 @@ async function refreshToken(accountId) {
   }
 }
 
-async function disconnectAccount(accountId) {
-  if (!confirm('Отключить аккаунт от папки? Он останется в системе, но не будет участвовать в выкладках.')) return;
+async function addAccountFolderFromSelect(accountId, sel) {
+  const folderId = sel.value;
+  if (!folderId) return;
+  sel.value = '';
   try {
-    await api('PATCH', `/admin/api/accounts/${accountId}/disconnect`);
-    showToast('Аккаунт отключён от папки');
+    await api('POST', `/admin/api/accounts/${accountId}/folders`, { folder_id: parseInt(folderId) });
+    showToast('Папка добавлена');
+    loadAccounts();
+  } catch (err) { showToast(err.message, false); }
+}
+
+async function removeAccountFolder(accountId, folderId) {
+  if (!confirm('Отвязать аккаунт от папки?')) return;
+  try {
+    await api('DELETE', `/admin/api/accounts/${accountId}/folders/${folderId}`);
+    showToast('Папка отвязана');
     loadAccounts();
   } catch (err) { showToast(err.message, false); }
 }
@@ -743,6 +765,16 @@ async function loadSmmboxAccounts() {
   renderSmmboxAccounts(accounts);
 }
 
+function smmboxProfileUrl(social, name) {
+  if (!name) return null;
+  switch ((social || '').toLowerCase()) {
+    case 'vk': return `https://vk.com/${encodeURIComponent(name)}`;
+    case 'yt': return `https://www.youtube.com/@${encodeURIComponent(name)}`;
+    case 'ok': return `https://ok.ru/${encodeURIComponent(name)}`;
+    default: return null;
+  }
+}
+
 function renderSmmboxAccounts(accounts) {
   const tbody = document.getElementById('smmbox-table-body');
   if (!accounts.length) {
@@ -750,30 +782,46 @@ function renderSmmboxAccounts(accounts) {
     return;
   }
   tbody.innerHTML = accounts.map(a => {
-    const folderOptions = allFolders
-      .map(f => `<option value="${f.id}" ${a.folder_id === f.id ? 'selected' : ''}>${escHtml(f.name)}</option>`)
-      .join('');
+    const folderPills = (a.folder_names || []).map((name, i) =>
+      `<span class="folder-pill">${escHtml(name)}<button onclick="removeSmmboxFolder(${a.id},${a.folder_ids[i]})" title="Отвязать">×</button></span>`
+    ).join('');
+    const folderAddOptions = allFolders
+      .filter(f => !(a.folder_ids || []).includes(f.id))
+      .map(f => `<option value="${f.id}">${escHtml(f.name)}</option>`).join('');
+
+    const smmUrl = smmboxProfileUrl(a.social, a.name);
     return `<tr>
-      <td>${escHtml(a.name)}</td>
+      <td>${smmUrl ? `<a href="${escHtml(smmUrl)}" target="_blank" rel="noopener" style="text-decoration:none;color:inherit">${escHtml(a.name)}</a>` : escHtml(a.name)}</td>
       <td><span class="badge badge-processing" style="font-size:11px">${SOCIAL_LABELS[a.social] || a.social}</span></td>
       <td style="color:var(--muted);font-size:12px">${escHtml(a.type)}</td>
       <td>
-        <select id="smmbox-folder-${a.id}" onchange="setSmmboxFolder(${a.id})">
-          <option value="">— без папки —</option>
-          ${folderOptions}
-        </select>
+        <div class="folder-pills">
+          ${folderPills || '<span style="color:var(--muted);font-size:12px">—</span>'}
+          ${folderAddOptions ? `<select onchange="addSmmboxFolderFromSelect(${a.id},this)" style="font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid var(--border);background:var(--bg);color:var(--muted);cursor:pointer"><option value="">+ папка</option>${folderAddOptions}</select>` : ''}
+        </div>
       </td>
       <td><button class="btn-danger btn-sm" onclick="deleteSmmboxAccount(${a.id})">Удалить</button></td>
     </tr>`;
   }).join('');
 }
 
-async function setSmmboxFolder(accountId) {
-  const sel = document.getElementById(`smmbox-folder-${accountId}`);
-  const folderId = sel.value ? parseInt(sel.value) : null;
+async function addSmmboxFolderFromSelect(accountId, sel) {
+  const folderId = sel.value;
+  if (!folderId) return;
+  sel.value = '';
   try {
-    await api('PATCH', `/admin/api/smmbox-accounts/${accountId}`, { folder_id: folderId });
-    showToast('Папка обновлена');
+    await api('POST', `/admin/api/smmbox-accounts/${accountId}/folders`, { folder_id: parseInt(folderId) });
+    showToast('Папка добавлена');
+    loadSmmboxAccounts();
+  } catch (err) { showToast(err.message, false); }
+}
+
+async function removeSmmboxFolder(accountId, folderId) {
+  if (!confirm('Отвязать аккаунт от папки?')) return;
+  try {
+    await api('DELETE', `/admin/api/smmbox-accounts/${accountId}/folders/${folderId}`);
+    showToast('Папка отвязана');
+    loadSmmboxAccounts();
   } catch (err) { showToast(err.message, false); }
 }
 
@@ -797,15 +845,29 @@ function renderTasks(tasks) {
   if (!tasks.length) { tbody.innerHTML = '<tr><td colspan="7" class="empty-state">Нет задач</td></tr>'; return; }
   tbody.innerHTML = tasks.map(t => {
     const date = new Date(t.created_at).toLocaleString('ru-RU');
-    const accountsHtml = (t.account_results || []).length
-      ? `<details><summary>${t.account_results.length} аккаунт(ов)</summary>
-          <div class="task-accounts">${t.account_results.map(ar =>
-            `<div class="task-account-row">
-              <span style="color:var(--text)">@${escHtml(ar.username || '?')}</span>
-              <span class="acc-status"><span class="badge badge-${ar.status === 'success' ? 'completed' : 'failed'}">${ar.status === 'success' ? 'OK' : 'Ошибка'}</span></span>
-              ${ar.error ? `<div style="font-size:11px;color:var(--error);margin-top:2px">${escHtml(ar.error)}</div>` : ''}
-            </div>`
-          ).join('')}</div></details>`
+    const igResults = t.instagram_results || [];
+    const smmResults = t.smmbox_results || [];
+    const totalResults = igResults.length + smmResults.length;
+    const igRows = igResults.map(ar =>
+      `<div class="task-account-row">
+        <a href="https://www.instagram.com/${encodeURIComponent(ar.username || '')}/" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">@${escHtml(ar.username || '?')}</a>
+        <span class="acc-status"><span class="badge badge-${ar.status === 'success' ? 'completed' : 'failed'}">${ar.status === 'success' ? 'OK' : 'Ошибка'}</span></span>
+        ${ar.permalink ? `<a href="${escHtml(ar.permalink)}" target="_blank" style="font-size:11px;color:var(--accent);margin-left:6px">↗</a>` : ''}
+        ${ar.error ? `<div style="font-size:11px;color:var(--error);margin-top:2px">${escHtml(ar.error)}</div>` : ''}
+      </div>`
+    ).join('');
+    const smmRows = smmResults.map(ar => {
+      const smmTaskUrl = smmboxProfileUrl(ar.social, ar.name);
+      return `<div class="task-account-row">
+        <span style="color:var(--muted);font-size:11px">[${escHtml(ar.social || '?')}]</span>
+        ${smmTaskUrl ? `<a href="${escHtml(smmTaskUrl)}" target="_blank" rel="noopener" style="color:var(--text);text-decoration:none">${escHtml(ar.name || '?')}</a>` : `<span style="color:var(--text)">${escHtml(ar.name || '?')}</span>`}
+        <span class="acc-status"><span class="badge badge-${ar.status === 'success' ? 'completed' : 'failed'}">${ar.status === 'success' ? 'OK' : 'Ошибка'}</span></span>
+        ${ar.error ? `<div style="font-size:11px;color:var(--error);margin-top:2px">${escHtml(ar.error)}</div>` : ''}
+      </div>`
+    ).join('');
+    const accountsHtml = totalResults
+      ? `<details><summary>${totalResults} аккаунт(ов)</summary>
+          <div class="task-accounts">${igRows}${smmRows}</div></details>`
       : `<span style="color:var(--muted);font-size:12px">нет данных</span>`;
 
     return `<tr>

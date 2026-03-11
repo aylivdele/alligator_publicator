@@ -1,6 +1,7 @@
 
 import logging
 import os
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
@@ -10,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from app import config
 from app.api.deps import get_current_user, require_admin
-from app.domain.models import Folder, InstagramAccount, User
+from app.domain.models import Folder, FolderInstagramAccount, InstagramAccount, User
 from app.infrastructure.database.db import get_db
 from app.infrastructure.instagram.graph_api_client import InstagramGraphApiClient
 
@@ -39,12 +40,10 @@ def create_auth_routes(graph_api: InstagramGraphApiClient, settings: Optional[co
             "views_max_age_hours": settings.VIEWS_MAX_AGE_HOURS,
         })
 
-
     @router.get("/start-auth")
     async def start_auth(folder_id: Optional[int] = None, _: User = Depends(require_admin)):
         url = get_auth_url(folder_id)
         return RedirectResponse(url=url)
-
 
     @router.get("/auth", response_class=HTMLResponse)
     async def auth_callback(request: Request, db: Session = Depends(get_db)):
@@ -73,7 +72,7 @@ def create_auth_routes(graph_api: InstagramGraphApiClient, settings: Optional[co
 
         if not code:
             return RedirectResponse(url="/")
-        
+
         try:
             long_token, expires_in = await graph_api.get_token(code)
             me = await graph_api.get_account_info(long_token)
@@ -87,23 +86,30 @@ def create_auth_routes(graph_api: InstagramGraphApiClient, settings: Optional[co
 
             instagram_id = me["id"]
             username = me.get("username", "unknown")
+            expires_at = datetime.now(timezone.utc) + timedelta(seconds=int(expires_in))
 
             account = db.query(InstagramAccount).filter_by(instagram_id=instagram_id).first()
             if account:
                 account.access_token = long_token
-                account.expires_in = expires_in
+                account.expires_at = expires_at
                 account.username = username
-                if folder_id is not None:
-                    account.folder_id = folder_id
             else:
                 account = InstagramAccount(
                     instagram_id=instagram_id,
                     username=username,
                     access_token=long_token,
-                    expires_in=expires_in,
-                    folder_id=folder_id
+                    expires_at=expires_at,
                 )
                 db.add(account)
+                db.flush()  # получаем account.id
+
+            # Привязываем к папке через junction-таблицу
+            if folder_id is not None:
+                existing_link = db.query(FolderInstagramAccount).filter_by(
+                    folder_id=folder_id, instagram_account_id=account.id
+                ).first()
+                if not existing_link:
+                    db.add(FolderInstagramAccount(folder_id=folder_id, instagram_account_id=account.id))
 
             db.commit()
 
@@ -119,8 +125,9 @@ def create_auth_routes(graph_api: InstagramGraphApiClient, settings: Optional[co
         except Exception as e:
             logging.getLogger(__name__).exception("Auth error", e)
             return templates.TemplateResponse("result.html", {
-                    "request": request,
-                    "success": False,
-                    "error": f"Непредвиденная ошибка: {e}"
-                })
+                "request": request,
+                "success": False,
+                "error": f"Непредвиденная ошибка: {e}"
+            })
+
     return router

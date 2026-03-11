@@ -2,9 +2,10 @@ from datetime import datetime
 import enum
 import uuid
 
-from sqlalchemy import UUID, Boolean, Column, Enum, Integer, String, DateTime, ForeignKey, Text, UniqueConstraint
+from sqlalchemy import UUID, Boolean, Column, Enum, Integer, String, DateTime, ForeignKey, Text
 from sqlalchemy.orm import DeclarativeBase, relationship
 from sqlalchemy.sql import func
+
 
 class Base(DeclarativeBase):
     pass
@@ -38,28 +39,41 @@ class UserFolderAccess(Base):
     folder = relationship("Folder")
 
 
-class AccountResultStatus(str, enum.Enum):
-    success = "success"
-    failed = "failed"
+# ─── M:M junction tables ──────────────────────────────────────────────────────
+
+class FolderInstagramAccount(Base):
+    """Привязка Instagram-аккаунта к папке (M:M)."""
+    __tablename__ = "folder_instagram_accounts"
+
+    folder_id = Column(Integer, ForeignKey("folders.id", ondelete="CASCADE"), primary_key=True)
+    instagram_account_id = Column(Integer, ForeignKey("instagram_accounts.id", ondelete="CASCADE"), primary_key=True)
 
 
-class TaskAccountResult(Base):
-    __tablename__ = "task_account_results"
+class FolderSmmboxAccount(Base):
+    """Привязка SMMBox-аккаунта к папке (M:M)."""
+    __tablename__ = "folder_smmbox_accounts"
 
-    id = Column(Integer, primary_key=True, index=True)
-    task_id = Column(UUID(as_uuid=True), ForeignKey("publish_tasks.id"), nullable=False)
-    account_id = Column(Integer, ForeignKey("instagram_accounts.id"), nullable=True)
-    status = Column(Enum(AccountResultStatus, name="account_result_status_enum"), nullable=False)
-    error = Column(Text, nullable=True)
-    media_id = Column(String, nullable=True)
-    permalink = Column(String, nullable=True)
-    view_count = Column(Integer, nullable=True)
-    views_updated_at = Column(DateTime, nullable=True)
-    million_notified = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    folder_id = Column(Integer, ForeignKey("folders.id", ondelete="CASCADE"), primary_key=True)
+    smmbox_account_id = Column(Integer, ForeignKey("smmbox_accounts.id", ondelete="CASCADE"), primary_key=True)
 
-    task = relationship("PublishTask", back_populates="account_results")
-    account = relationship("InstagramAccount")
+
+class TaskSelectedInstagramAccount(Base):
+    """Выбранные Instagram-аккаунты для задачи публикации."""
+    __tablename__ = "task_selected_instagram_accounts"
+
+    task_id = Column(UUID(as_uuid=True), ForeignKey("publish_tasks.id", ondelete="CASCADE"), primary_key=True)
+    instagram_account_id = Column(Integer, ForeignKey("instagram_accounts.id", ondelete="CASCADE"), primary_key=True)
+
+
+class TaskSelectedSmmboxAccount(Base):
+    """Выбранные SMMBox-аккаунты для задачи публикации."""
+    __tablename__ = "task_selected_smmbox_accounts"
+
+    task_id = Column(UUID(as_uuid=True), ForeignKey("publish_tasks.id", ondelete="CASCADE"), primary_key=True)
+    smmbox_account_id = Column(Integer, ForeignKey("smmbox_accounts.id", ondelete="CASCADE"), primary_key=True)
+
+
+# ─── Core domain models ───────────────────────────────────────────────────────
 
 class Folder(Base):
     __tablename__ = "folders"
@@ -68,8 +82,16 @@ class Folder(Base):
     name = Column(String, nullable=False, unique=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    accounts = relationship("InstagramAccount", back_populates="folder")
-    smmbox_accounts = relationship("SmmboxAccount", back_populates="folder")
+    instagram_accounts = relationship(
+        "InstagramAccount",
+        secondary="folder_instagram_accounts",
+        back_populates="folders",
+    )
+    smmbox_accounts = relationship(
+        "SmmboxAccount",
+        secondary="folder_smmbox_accounts",
+        back_populates="folders",
+    )
     tasks = relationship("PublishTask", back_populates="folder")
 
 
@@ -80,12 +102,15 @@ class InstagramAccount(Base):
     instagram_id = Column(String, unique=True, index=True, nullable=False)
     username = Column(String, nullable=False)
     access_token = Column(String, nullable=False)
-    expires_in = Column(Integer, default=5184000)  # секунды
-    folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=True)  # дата истечения токена
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
-    folder = relationship("Folder", back_populates="accounts")
+    folders = relationship(
+        "Folder",
+        secondary="folder_instagram_accounts",
+        back_populates="instagram_accounts",
+    )
 
 
 class SmmboxAccount(Base):
@@ -93,26 +118,19 @@ class SmmboxAccount(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     smmbox_id = Column(String, unique=True, nullable=False)
-    social = Column(String, nullable=False)   # "vk", "tg", "to", etc.
+    social = Column(String, nullable=False)   # "vk", "tg", "yt", etc.
     type = Column(String, nullable=False)     # "user", "group", "page"
     name = Column(String, nullable=False)
-    folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    folder = relationship("Folder", back_populates="smmbox_accounts")
+    folders = relationship(
+        "Folder",
+        secondary="folder_smmbox_accounts",
+        back_populates="smmbox_accounts",
+    )
 
 
-class InstagramAccountFolder(Base):
-    __tablename__ = "instagram_account_folders"
-    account_id = Column(Integer, ForeignKey("instagram_accounts.id", ondelete="CASCADE"), primary_key=True)
-    folder_id = Column(Integer, ForeignKey("folders.id", ondelete="CASCADE"), primary_key=True)
-
-
-class SmmboxAccountFolder(Base):
-    __tablename__ = "smmbox_account_folders"
-    account_id = Column(Integer, ForeignKey("smmbox_accounts.id", ondelete="CASCADE"), primary_key=True)
-    folder_id = Column(Integer, ForeignKey("folders.id", ondelete="CASCADE"), primary_key=True)
-
+# ─── Publish tasks ────────────────────────────────────────────────────────────
 
 class TaskStatus(str, enum.Enum):
     pending = "pending"
@@ -120,17 +138,21 @@ class TaskStatus(str, enum.Enum):
     completed = "completed"
     failed = "failed"
 
+
 class TaskStage(str, enum.Enum):
     writing = "writing"
     processing = "processing"
     uploading = "uploading"
     done = "done"
 
+
 class PublishTask(Base):
     __tablename__ = "publish_tasks"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     folder_id = Column(Integer, ForeignKey("folders.id"), nullable=False)
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+
     file_path = Column(Text)
     caption = Column(Text)
     is_test_mode = Column(Boolean, default=False, nullable=True)
@@ -139,12 +161,74 @@ class PublishTask(Base):
     stage = Column(Enum(TaskStage, name="task_stage_enum"), nullable=True)
     error = Column(Text)
 
-    selected_account_ids = Column(Text, nullable=True)  # JSON array of account IDs, None = all
-
     locked_at = Column(DateTime, nullable=True)
     locked_by = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
     folder = relationship("Folder", back_populates="tasks")
-    account_results = relationship("TaskAccountResult", back_populates="task", cascade="all, delete-orphan")
+    created_by = relationship("User", foreign_keys=[created_by_user_id])
+
+    selected_instagram_accounts = relationship(
+        "InstagramAccount",
+        secondary="task_selected_instagram_accounts",
+    )
+    selected_smmbox_accounts = relationship(
+        "SmmboxAccount",
+        secondary="task_selected_smmbox_accounts",
+    )
+
+    instagram_results = relationship(
+        "TaskInstagramResult", back_populates="task", cascade="all, delete-orphan"
+    )
+    smmbox_results = relationship(
+        "TaskSmmboxResult", back_populates="task", cascade="all, delete-orphan"
+    )
+
+
+# ─── Publish results ──────────────────────────────────────────────────────────
+
+class AccountResultStatus(str, enum.Enum):
+    success = "success"
+    failed = "failed"
+
+
+class TaskInstagramResult(Base):
+    """Результат публикации в один Instagram-аккаунт."""
+    __tablename__ = "task_instagram_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(UUID(as_uuid=True), ForeignKey("publish_tasks.id"), nullable=False)
+    instagram_account_id = Column(Integer, ForeignKey("instagram_accounts.id"), nullable=True)  # nullable: аккаунт мог быть удалён
+
+    status = Column(Enum(AccountResultStatus, name="account_result_status_enum"), nullable=False)
+    error = Column(Text, nullable=True)
+
+    media_id = Column(String, nullable=True)
+    permalink = Column(String, nullable=True)
+    view_count = Column(Integer, nullable=True)
+    views_updated_at = Column(DateTime, nullable=True)
+    million_notified = Column(Boolean, default=False, nullable=False)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    task = relationship("PublishTask", back_populates="instagram_results")
+    account = relationship("InstagramAccount")
+
+
+class TaskSmmboxResult(Base):
+    """Результат публикации в один SMMBox-аккаунт."""
+    __tablename__ = "task_smmbox_results"
+
+    id = Column(Integer, primary_key=True, index=True)
+    task_id = Column(UUID(as_uuid=True), ForeignKey("publish_tasks.id"), nullable=False)
+    smmbox_account_id = Column(Integer, ForeignKey("smmbox_accounts.id"), nullable=True)  # nullable: аккаунт мог быть удалён
+
+    status = Column(Enum(AccountResultStatus, name="account_result_status_enum"), nullable=False)
+    error = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    task = relationship("PublishTask", back_populates="smmbox_results")
+    account = relationship("SmmboxAccount")

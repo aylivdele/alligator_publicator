@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_admin, require_auth
-from app.domain.models import Folder, InstagramAccount, PublishTask, TaskStatus, User, UserFolderAccess, UserRole
+from app.domain.models import Folder, FolderInstagramAccount, PublishTask, TaskStatus, User, UserFolderAccess, UserRole
 from app.infrastructure.database.db import get_db
 
 
@@ -21,7 +21,7 @@ async def get_folders(db: Session = Depends(get_db), current_user: User = Depend
         {
             "id": f.id,
             "name": f.name,
-            "count": len(f.accounts)
+            "count": len(f.instagram_accounts),
         }
         for f in folders
     ]
@@ -58,7 +58,7 @@ async def rename_folder(folder_id: int, request: Request, db: Session = Depends(
     folder.name = name
     db.commit()
     db.refresh(folder)
-    return {"id": folder.id, "name": folder.name, "count": len(folder.accounts)}
+    return {"id": folder.id, "name": folder.name, "count": len(folder.instagram_accounts)}
 
 
 @router.delete("/folders/{folder_id}")
@@ -72,10 +72,12 @@ async def delete_folder(folder_id: int, db: Session = Depends(get_db), _: User =
     ).count()
     if active_count:
         raise HTTPException(status_code=400, detail=f"Нельзя удалить папку: есть {active_count} активных выкладок")
+    # Удаляем все задачи папки (каскадно удалятся результаты)
     tasks = db.query(PublishTask).filter_by(folder_id=folder_id).all()
     for task in tasks:
         db.delete(task)
-    db.query(InstagramAccount).filter_by(folder_id=folder_id).update({"folder_id": None})
+    # Удаляем привязки аккаунтов к папке (через junction-таблицы)
+    db.query(FolderInstagramAccount).filter_by(folder_id=folder_id).delete()
     db.query(UserFolderAccess).filter_by(folder_id=folder_id).delete()
     db.delete(folder)
     db.commit()

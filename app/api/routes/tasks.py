@@ -1,3 +1,4 @@
+import json
 import uuid
 import shutil
 from typing import Optional
@@ -7,13 +8,20 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_auth
-from app.application.services.uniqalize_reel import ReelsUniqalizerService
-from app.domain.models import Folder, PublishTask, TaskStatus, User, UserFolderAccess, UserRole
-from app.domain.repositories import InstagramPublisher
+from app.domain.models import (
+    Folder,
+    PublishTask,
+    TaskSelectedInstagramAccount,
+    TaskSelectedSmmboxAccount,
+    TaskStatus,
+    User,
+    UserFolderAccess,
+    UserRole,
+)
 from app.infrastructure.database.db import get_db
 
 
-def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publisher: InstagramPublisher):
+def create_publish_routes():
     router = APIRouter()
 
     @router.post("/tasks")
@@ -22,7 +30,9 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
         caption: str = Form(...),
         selected_folder_id: int = Form(...),
         is_test_mode: bool = Form(...),
-        selected_account_ids: Optional[str] = Form(None),
+        # JSON-массивы ID выбранных аккаунтов, None = все аккаунты папки
+        selected_instagram_account_ids: Optional[str] = Form(None),
+        selected_smmbox_account_ids: Optional[str] = Form(None),
         db: Session = Depends(get_db),
         current_user: User = Depends(require_auth),
     ):
@@ -31,25 +41,43 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
             if selected_folder_id not in accessible_ids:
                 raise HTTPException(status_code=403, detail="Нет доступа к этой папке")
 
+        # Обычный пользователь может выбрать только 1 Instagram-аккаунт
+        if current_user.role != UserRole.admin:
+            ig_ids = json.loads(selected_instagram_account_ids) if selected_instagram_account_ids else []
+            if len(ig_ids) > 1:
+                raise HTTPException(status_code=403, detail="Обычный пользователь может выбрать только один аккаунт")
+
         temp_path = f"/shared/{uuid.uuid4()}.mp4"
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
-        task = PublishTask()
-        task.folder_id = selected_folder_id
-        task.status = TaskStatus.pending
-        task.file_path = temp_path
-        task.caption = caption
-        task.is_test_mode = is_test_mode
-        task.selected_account_ids = selected_account_ids
-
+        task = PublishTask(
+            folder_id=selected_folder_id,
+            created_by_user_id=current_user.id,
+            status=TaskStatus.pending,
+            file_path=temp_path,
+            caption=caption,
+            is_test_mode=is_test_mode,
+        )
         db.add(task)
+        db.flush()  # получаем task.id до создания связанных записей
+
+        # Сохраняем выбранные Instagram-аккаунты
+        if selected_instagram_account_ids:
+            for acc_id in json.loads(selected_instagram_account_ids):
+                db.add(TaskSelectedInstagramAccount(task_id=task.id, instagram_account_id=acc_id))
+
+        # Сохраняем выбранные SMMBox-аккаунты
+        if selected_smmbox_account_ids:
+            for acc_id in json.loads(selected_smmbox_account_ids):
+                db.add(TaskSelectedSmmboxAccount(task_id=task.id, smmbox_account_id=acc_id))
+
         db.commit()
         db.refresh(task)
 
         return {
             "task_id": str(task.id),
-            "status": task.status
+            "status": task.status,
         }
 
     @router.get("/tasks/{task_id}")
@@ -60,7 +88,7 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
         return {
             "status": task.status,
             "stage": task.stage,
-            "error": task.error
+            "error": task.error,
         }
 
     @router.get("/tasks")
@@ -81,24 +109,39 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
 
         rows = []
         for task, folder_name in result:
-            account_info = None
             if is_admin:
-                account_info = [
+                ig_results = [
                     {
-                        "instagram_id": ar.account.instagram_id if ar.account else None,
-                        "username": ar.account.username if ar.account else None,
-                        "status": ar.status,
-                        "error": ar.error,
+                        "instagram_id": r.account.instagram_id if r.account else None,
+                        "username": r.account.username if r.account else None,
+                        "status": r.status,
+                        "error": r.error,
                     }
-                    for ar in task.account_results
+                    for r in task.instagram_results
+                ]
+                smm_results = [
+                    {
+                        "name": r.account.name if r.account else None,
+                        "social": r.account.social if r.account else None,
+                        "status": r.status,
+                        "error": r.error,
+                    }
+                    for r in task.smmbox_results
                 ]
             else:
-                account_info = [
+                ig_results = [
                     {
-                        "instagram_id": ar.account.instagram_id if ar.account else None,
-                        "status": ar.status,
+                        "instagram_id": r.account.instagram_id if r.account else None,
+                        "status": r.status,
                     }
-                    for ar in task.account_results
+                    for r in task.instagram_results
+                ]
+                smm_results = [
+                    {
+                        "social": r.account.social if r.account else None,
+                        "status": r.status,
+                    }
+                    for r in task.smmbox_results
                 ]
 
             rows.append({
@@ -110,7 +153,8 @@ def create_publish_routes(uniqalizer: ReelsUniqalizerService, instagram_publishe
                 "created_at": task.created_at,
                 "locked_by": task.locked_by,
                 "is_test_mode": task.is_test_mode,
-                "account_results": account_info,
+                "instagram_results": ig_results,
+                "smmbox_results": smm_results,
             })
 
         return rows

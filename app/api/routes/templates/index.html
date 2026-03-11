@@ -1545,7 +1545,7 @@
     formData.append('selected_folder_id', folderId);
     formData.append('is_test_mode', isTestMode);
     if (accountIds !== null) {
-      formData.append('selected_account_ids', JSON.stringify(accountIds));
+      formData.append('selected_instagram_account_ids', JSON.stringify(accountIds));
     }
 
     const btn = document.getElementById('btnPublish');
@@ -1709,13 +1709,16 @@
         ? `<span class="folder-pill">${FOLDER_ICON}${escHtml(a.folder_name)}</span>`
         : `<span class="folder-pill no-folder">Без папки</span>`;
 
+      const daysLeft = a.expires_at
+        ? Math.max(0, Math.floor((new Date(a.expires_at) - Date.now()) / 86400000))
+        : '?';
       return `
         <tr>
-          <td><span class="username">${escHtml(a.username)}</span></td>
+          <td><a href="https://www.instagram.com/${encodeURIComponent(a.username)}/" target="_blank" rel="noopener" class="username" style="text-decoration:none">${escHtml(a.username)}</a></td>
           <td>${folderPill}</td>
           <td><span class="cell-muted">${escHtml(a.instagram_id)}</span></td>
           <td><span class="token-preview">${escHtml(a.access_token)}…</span></td>
-          <td><span class="cell-muted">${Math.floor(a.expires_in / 86400)} дн.</span></td>
+          <td><span class="cell-muted">${daysLeft} дн.</span></td>
           <td><span class="badge">Active</span></td>
         </tr>`;
     }).join('');
