@@ -26,6 +26,7 @@ class SocialType(Enum):
     INSTAGRAM = 'io'
     VK = 'vk'
     TIKTOK = 'to'
+    YOUTUBE = 'gg'
     UNKNOWN = "unknown"
 
     @classmethod
