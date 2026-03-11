@@ -24,89 +24,301 @@ depends_on = None
 
 def upgrade() -> None:
     # ── instagram_accounts ────────────────────────────────────────────────────
-    # Добавляем expires_at, вычисляя из expires_in + updated_at/created_at
-    op.add_column('instagram_accounts', sa.Column('expires_at', sa.DateTime(timezone=True), nullable=True))
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='instagram_accounts' AND column_name='expires_at'
+            ) THEN
+                ALTER TABLE instagram_accounts ADD COLUMN expires_at TIMESTAMPTZ;
+            END IF;
+        END $$;
+    """)
     op.execute("""
         UPDATE instagram_accounts
         SET expires_at = (COALESCE(updated_at, created_at) + (expires_in * INTERVAL '1 second'))
-        WHERE expires_in IS NOT NULL AND COALESCE(updated_at, created_at) IS NOT NULL
+        WHERE expires_in IS NOT NULL
+          AND COALESCE(updated_at, created_at) IS NOT NULL
+          AND expires_at IS NULL
     """)
-    op.drop_column('instagram_accounts', 'expires_in')
-    op.drop_column('instagram_accounts', 'folder_id')
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='instagram_accounts' AND column_name='expires_in'
+            ) THEN
+                ALTER TABLE instagram_accounts DROP COLUMN expires_in;
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='instagram_accounts' AND column_name='folder_id'
+            ) THEN
+                ALTER TABLE instagram_accounts DROP COLUMN folder_id;
+            END IF;
+        END $$;
+    """)
 
     # ── smmbox_accounts ───────────────────────────────────────────────────────
-    op.drop_column('smmbox_accounts', 'folder_id')
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='smmbox_accounts' AND column_name='folder_id'
+            ) THEN
+                ALTER TABLE smmbox_accounts DROP COLUMN folder_id;
+            END IF;
+        END $$;
+    """)
 
     # ── instagram_account_folders → folder_instagram_accounts ─────────────────
-    op.execute("ALTER TABLE instagram_account_folders RENAME TO folder_instagram_accounts")
-    op.execute("ALTER TABLE folder_instagram_accounts RENAME COLUMN account_id TO instagram_account_id")
+    # If both tables exist, old one is stale — drop it.
+    # If only old exists, rename it. If only new exists, nothing to do.
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='instagram_account_folders')
+               AND EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='folder_instagram_accounts')
+            THEN
+                DROP TABLE instagram_account_folders;
+            ELSIF EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='instagram_account_folders')
+            THEN
+                ALTER TABLE instagram_account_folders RENAME TO folder_instagram_accounts;
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='folder_instagram_accounts' AND column_name='account_id'
+            ) THEN
+                ALTER TABLE folder_instagram_accounts RENAME COLUMN account_id TO instagram_account_id;
+            END IF;
+        END $$;
+    """)
 
     # ── smmbox_account_folders → folder_smmbox_accounts ──────────────────────
-    op.execute("ALTER TABLE smmbox_account_folders RENAME TO folder_smmbox_accounts")
-    op.execute("ALTER TABLE folder_smmbox_accounts RENAME COLUMN account_id TO smmbox_account_id")
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='smmbox_account_folders')
+               AND EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='folder_smmbox_accounts')
+            THEN
+                DROP TABLE smmbox_account_folders;
+            ELSIF EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='smmbox_account_folders')
+            THEN
+                ALTER TABLE smmbox_account_folders RENAME TO folder_smmbox_accounts;
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='folder_smmbox_accounts' AND column_name='account_id'
+            ) THEN
+                ALTER TABLE folder_smmbox_accounts RENAME COLUMN account_id TO smmbox_account_id;
+            END IF;
+        END $$;
+    """)
 
     # ── publish_tasks ─────────────────────────────────────────────────────────
-    op.drop_column('publish_tasks', 'selected_account_ids')
-    op.add_column(
-        'publish_tasks',
-        sa.Column('created_by_user_id', sa.Integer(), sa.ForeignKey('users.id'), nullable=True),
-    )
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='publish_tasks' AND column_name='selected_account_ids'
+            ) THEN
+                ALTER TABLE publish_tasks DROP COLUMN selected_account_ids;
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='publish_tasks' AND column_name='created_by_user_id'
+            ) THEN
+                ALTER TABLE publish_tasks ADD COLUMN created_by_user_id INTEGER REFERENCES users(id);
+            END IF;
+        END $$;
+    """)
 
     # ── task_account_results → task_instagram_results ─────────────────────────
-    op.execute("ALTER TABLE task_account_results RENAME TO task_instagram_results")
-    op.execute("ALTER TABLE task_instagram_results RENAME COLUMN account_id TO instagram_account_id")
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='task_account_results')
+               AND NOT EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='task_instagram_results')
+            THEN
+                ALTER TABLE task_account_results RENAME TO task_instagram_results;
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='task_instagram_results' AND column_name='account_id'
+            ) THEN
+                ALTER TABLE task_instagram_results RENAME COLUMN account_id TO instagram_account_id;
+            END IF;
+        END $$;
+    """)
 
-    # ── Новые таблицы ─────────────────────────────────────────────────────────
-    op.create_table(
-        'task_selected_instagram_accounts',
-        sa.Column('task_id', sa.dialects.postgresql.UUID(as_uuid=True),
-                  sa.ForeignKey('publish_tasks.id', ondelete='CASCADE'), primary_key=True),
-        sa.Column('instagram_account_id', sa.Integer(),
-                  sa.ForeignKey('instagram_accounts.id', ondelete='CASCADE'), primary_key=True),
-    )
+    # ── Новые таблицы (IF NOT EXISTS) ─────────────────────────────────────────
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS task_selected_instagram_accounts (
+            task_id UUID NOT NULL REFERENCES publish_tasks(id) ON DELETE CASCADE,
+            instagram_account_id INTEGER NOT NULL REFERENCES instagram_accounts(id) ON DELETE CASCADE,
+            PRIMARY KEY (task_id, instagram_account_id)
+        )
+    """)
 
-    op.create_table(
-        'task_selected_smmbox_accounts',
-        sa.Column('task_id', sa.dialects.postgresql.UUID(as_uuid=True),
-                  sa.ForeignKey('publish_tasks.id', ondelete='CASCADE'), primary_key=True),
-        sa.Column('smmbox_account_id', sa.Integer(),
-                  sa.ForeignKey('smmbox_accounts.id', ondelete='CASCADE'), primary_key=True),
-    )
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS task_selected_smmbox_accounts (
+            task_id UUID NOT NULL REFERENCES publish_tasks(id) ON DELETE CASCADE,
+            smmbox_account_id INTEGER NOT NULL REFERENCES smmbox_accounts(id) ON DELETE CASCADE,
+            PRIMARY KEY (task_id, smmbox_account_id)
+        )
+    """)
 
-    op.create_table(
-        'task_smmbox_results',
-        sa.Column('id', sa.Integer(), primary_key=True, autoincrement=True),
-        sa.Column('task_id', sa.dialects.postgresql.UUID(as_uuid=True),
-                  sa.ForeignKey('publish_tasks.id'), nullable=False),
-        sa.Column('smmbox_account_id', sa.Integer(),
-                  sa.ForeignKey('smmbox_accounts.id'), nullable=True),
-        sa.Column('status', sa.Enum('success', 'failed', name='account_result_status_enum',
-                                    create_type=False), nullable=False),
-        sa.Column('error', sa.Text(), nullable=True),
-        sa.Column('created_at', sa.DateTime(), nullable=True),
-    )
+    op.execute("""
+        CREATE TABLE IF NOT EXISTS task_smmbox_results (
+            id SERIAL PRIMARY KEY,
+            task_id UUID NOT NULL REFERENCES publish_tasks(id),
+            smmbox_account_id INTEGER REFERENCES smmbox_accounts(id),
+            status account_result_status_enum NOT NULL,
+            error TEXT,
+            created_at TIMESTAMP
+        )
+    """)
 
 
 def downgrade() -> None:
-    op.drop_table('task_smmbox_results')
-    op.drop_table('task_selected_smmbox_accounts')
-    op.drop_table('task_selected_instagram_accounts')
+    op.execute("DROP TABLE IF EXISTS task_smmbox_results")
+    op.execute("DROP TABLE IF EXISTS task_selected_smmbox_accounts")
+    op.execute("DROP TABLE IF EXISTS task_selected_instagram_accounts")
 
-    op.execute("ALTER TABLE task_instagram_results RENAME COLUMN instagram_account_id TO account_id")
-    op.execute("ALTER TABLE task_instagram_results RENAME TO task_account_results")
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='task_instagram_results' AND column_name='instagram_account_id'
+            ) THEN
+                ALTER TABLE task_instagram_results RENAME COLUMN instagram_account_id TO account_id;
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='task_instagram_results')
+               AND NOT EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='task_account_results')
+            THEN
+                ALTER TABLE task_instagram_results RENAME TO task_account_results;
+            END IF;
+        END $$;
+    """)
 
-    op.drop_column('publish_tasks', 'created_by_user_id')
-    op.add_column('publish_tasks', sa.Column('selected_account_ids', sa.Text(), nullable=True))
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='publish_tasks' AND column_name='created_by_user_id'
+            ) THEN
+                ALTER TABLE publish_tasks DROP COLUMN created_by_user_id;
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='publish_tasks' AND column_name='selected_account_ids'
+            ) THEN
+                ALTER TABLE publish_tasks ADD COLUMN selected_account_ids TEXT;
+            END IF;
+        END $$;
+    """)
 
-    op.execute("ALTER TABLE folder_smmbox_accounts RENAME COLUMN smmbox_account_id TO account_id")
-    op.execute("ALTER TABLE folder_smmbox_accounts RENAME TO smmbox_account_folders")
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='folder_smmbox_accounts' AND column_name='smmbox_account_id'
+            ) THEN
+                ALTER TABLE folder_smmbox_accounts RENAME COLUMN smmbox_account_id TO account_id;
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='folder_smmbox_accounts')
+               AND NOT EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='smmbox_account_folders')
+            THEN
+                ALTER TABLE folder_smmbox_accounts RENAME TO smmbox_account_folders;
+            END IF;
+        END $$;
+    """)
 
-    op.execute("ALTER TABLE folder_instagram_accounts RENAME COLUMN instagram_account_id TO account_id")
-    op.execute("ALTER TABLE folder_instagram_accounts RENAME TO instagram_account_folders")
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='folder_instagram_accounts' AND column_name='instagram_account_id'
+            ) THEN
+                ALTER TABLE folder_instagram_accounts RENAME COLUMN instagram_account_id TO account_id;
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='folder_instagram_accounts')
+               AND NOT EXISTS (SELECT FROM pg_tables WHERE schemaname='public' AND tablename='instagram_account_folders')
+            THEN
+                ALTER TABLE folder_instagram_accounts RENAME TO instagram_account_folders;
+            END IF;
+        END $$;
+    """)
 
-    op.add_column('smmbox_accounts', sa.Column('folder_id', sa.Integer(),
-                                                sa.ForeignKey('folders.id'), nullable=True))
-    op.add_column('instagram_accounts', sa.Column('folder_id', sa.Integer(),
-                                                   sa.ForeignKey('folders.id'), nullable=True))
-    op.add_column('instagram_accounts', sa.Column('expires_in', sa.Integer(), nullable=True))
-    op.drop_column('instagram_accounts', 'expires_at')
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='smmbox_accounts' AND column_name='folder_id'
+            ) THEN
+                ALTER TABLE smmbox_accounts ADD COLUMN folder_id INTEGER REFERENCES folders(id);
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='instagram_accounts' AND column_name='folder_id'
+            ) THEN
+                ALTER TABLE instagram_accounts ADD COLUMN folder_id INTEGER REFERENCES folders(id);
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF NOT EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='instagram_accounts' AND column_name='expires_in'
+            ) THEN
+                ALTER TABLE instagram_accounts ADD COLUMN expires_in INTEGER;
+            END IF;
+        END $$;
+    """)
+    op.execute("""
+        DO $$ BEGIN
+            IF EXISTS (
+                SELECT FROM information_schema.columns
+                WHERE table_name='instagram_accounts' AND column_name='expires_at'
+            ) THEN
+                ALTER TABLE instagram_accounts DROP COLUMN expires_at;
+            END IF;
+        END $$;
+    """)
