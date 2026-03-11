@@ -4,7 +4,6 @@ import logging
 import os
 import random
 import time
-import uuid
 from collections import defaultdict
 from itertools import zip_longest
 from typing import Optional
@@ -13,8 +12,8 @@ from sqlalchemy.orm import Session
 
 from app.application.services.caption_uniqualizer import CaptionUniqualizerService
 from app.application.services.uniqalize_reel import ReelsUniqalizerService
-from app.domain.entities import Reel, SocialType, UserGroup
-from app.domain.models import AccountResultStatus, Folder, InstagramAccount, PublishTask, TaskAccountResult, TaskStage, TaskStatus
+from app.domain.entities import GroupType, Reel, SocialType, UserGroup
+from app.domain.models import AccountResultStatus, Folder, InstagramAccount, PublishTask, SmmboxAccount, TaskAccountResult, TaskStage, TaskStatus
 from app.domain.repositories import CombinedPublisher, InstagramPublisher
 
 
@@ -80,14 +79,19 @@ class PublishVideoTask:
             else:
                 instagram_accounts = db.query(InstagramAccount).join(Folder).where(Folder.id == task.folder_id).all()
 
-            # --- Получаем SMMBox-группы (Instagram отсеиваем — используем свои аккаунты) ---
+            # --- Получаем SMMBox-аккаунты из БД для данной папки ---
             smmbox_groups: list[UserGroup] = []
             if self.smmbox_client:
-                try:
-                    all_groups = self.smmbox_client.get_user_groups()
-                    smmbox_groups = [g for g in all_groups if g.social != SocialType.INSTAGRAM]
-                except Exception:
-                    self.logger.exception("Failed to fetch SMMBox groups, proceeding without them")
+                smmbox_db = db.query(SmmboxAccount).filter_by(folder_id=task.folder_id).all()
+                smmbox_groups = [
+                    UserGroup(
+                        id=a.smmbox_id,
+                        social=SocialType(a.social),
+                        type=GroupType(a.type),
+                        name=a.name,
+                    )
+                    for a in smmbox_db
+                ]
 
             # --- Строим публикационные группы ---
             publish_groups = self._build_publish_groups(instagram_accounts, smmbox_groups)

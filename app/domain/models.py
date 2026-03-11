@@ -69,6 +69,7 @@ class Folder(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     accounts = relationship("InstagramAccount", back_populates="folder")
+    smmbox_accounts = relationship("SmmboxAccount", back_populates="folder")
     tasks = relationship("PublishTask", back_populates="folder")
 
 
@@ -85,6 +86,20 @@ class InstagramAccount(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     folder = relationship("Folder", back_populates="accounts")
+
+
+class SmmboxAccount(Base):
+    __tablename__ = "smmbox_accounts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    smmbox_id = Column(String, unique=True, nullable=False)
+    social = Column(String, nullable=False)   # "vk", "tg", "to", etc.
+    type = Column(String, nullable=False)     # "user", "group", "page"
+    name = Column(String, nullable=False)
+    folder_id = Column(Integer, ForeignKey("folders.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    folder = relationship("Folder", back_populates="smmbox_accounts")
 
 
 class TaskStatus(str, enum.Enum):

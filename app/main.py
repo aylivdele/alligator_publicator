@@ -12,6 +12,7 @@ from app.application.services.uniqalize_reel import ReelsUniqalizerService
 from app.domain.models import Base, User, UserRole
 from app.infrastructure.database.db import engine, get_db
 from app.infrastructure.instagram.graph_api_client import InstagramGraphApiClient
+from app.infrastructure.publishers.smmbox_api_client import SmmboxApiClient
 from app.infrastructure.storage.s3 import S3Storage
 from app.infrastructure.video.ffmpeg_processor import FFmpegUniqueReelGenerator
 
@@ -22,6 +23,7 @@ def create_app() -> FastAPI:
     generator = FFmpegUniqueReelGenerator()
     uniqalizer = ReelsUniqalizerService(generator, storage)
     graph_api = InstagramGraphApiClient(settings.GRAPH_API_CLIENT_ID, settings.GRAPH_API_CLIENT_SECRET, settings.GRAPH_API_REDIRECT_URI)
+    smmbox_client = SmmboxApiClient(settings.SMMBOX_API_KEY) if settings.SMMBOX_API_KEY else None
     logging.basicConfig(level=logging.INFO)
 
     app = FastAPI(title="Instagram Publisher API")
@@ -29,7 +31,7 @@ def create_app() -> FastAPI:
     app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
     app.include_router(user_auth.router)
-    app.include_router(create_admin_routes(graph_api))
+    app.include_router(create_admin_routes(graph_api, smmbox_client))
     app.include_router(folders.router, prefix="/api")
     app.include_router(accounts.router, prefix="/api")
     app.include_router(tasks.create_publish_routes(uniqalizer, graph_api), prefix="/api")

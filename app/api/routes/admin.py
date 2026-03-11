@@ -9,14 +9,17 @@ from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_admin
+from app.domain.entities import GroupType, SocialType
 from app.domain.models import (
     InstagramAccount,
     PublishTask,
+    SmmboxAccount,
     TaskAccountResult,
     User,
     UserFolderAccess,
     UserRole,
 )
+from app.domain.repositories import CombinedPublisher
 from app.infrastructure.database.db import get_db
 from app.infrastructure.instagram.graph_api_client import InstagramGraphApiClient
 
@@ -24,7 +27,7 @@ _templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "
 _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def create_admin_routes(graph_api: InstagramGraphApiClient) -> APIRouter:
+def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optional[CombinedPublisher] = None) -> APIRouter:
     router = APIRouter(prefix="/admin")
     templates = _templates
     pwd_context = _pwd_context
@@ -229,6 +232,77 @@ def create_admin_routes(graph_api: InstagramGraphApiClient) -> APIRouter:
             raise HTTPException(status_code=404, detail="Аккаунт не найден")
         account.folder_id = None
         db.commit()
+        return {"success": True}
+
+    # ─── SMMBox accounts ──────────────────────────────────────────────────────
+
+    @router.post("/api/smmbox-accounts/sync")
+    async def sync_smmbox_accounts(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+        if not smmbox_client:
+            raise HTTPException(status_code=400, detail="SMMBox не настроен: укажите SMMBOX_API_KEY")
+        try:
+            all_groups = smmbox_client.get_user_groups()
+        except Exception as e:
+            raise HTTPException(status_code=502, detail=f"Ошибка запроса к SMMBox: {e}")
+
+        non_ig = [g for g in all_groups if g.social != SocialType.INSTAGRAM]
+        for g in non_ig:
+            existing = db.query(SmmboxAccount).filter_by(smmbox_id=g.id).first()
+            if existing:
+                existing.name = g.name
+                existing.social = g.social.value
+                existing.type = g.type.value
+            else:
+                db.add(SmmboxAccount(
+                    smmbox_id=g.id,
+                    social=g.social.value,
+                    type=g.type.value,
+                    name=g.name,
+                ))
+        db.commit()
+        return {"synced": len(non_ig)}
+
+    @router.get("/api/smmbox-accounts")
+    async def list_smmbox_accounts(db: Session = Depends(get_db), _: User = Depends(require_admin)):
+        accounts = db.query(SmmboxAccount).order_by(SmmboxAccount.social, SmmboxAccount.name).all()
+        return [
+            {
+                "id": a.id,
+                "smmbox_id": a.smmbox_id,
+                "social": a.social,
+                "type": a.type,
+                "name": a.name,
+                "folder_id": a.folder_id,
+                "folder_name": a.folder.name if a.folder else None,
+            }
+            for a in accounts
+        ]
+
+    @router.patch("/api/smmbox-accounts/{account_id}")
+    async def update_smmbox_account(
+        account_id: int,
+        request: Request,
+        db: Session = Depends(get_db),
+        _: User = Depends(require_admin),
+    ):
+        data = await request.json()
+        acc = db.query(SmmboxAccount).filter_by(id=account_id).first()
+        if not acc:
+            raise HTTPException(status_code=404, detail="Аккаунт не найден")
+        acc.folder_id = data.get("folder_id") or None
+        db.commit()
+        return {"success": True}
+
+    @router.delete("/api/smmbox-accounts/{account_id}")
+    async def delete_smmbox_account(
+        account_id: int,
+        db: Session = Depends(get_db),
+        _: User = Depends(require_admin),
+    ):
+        acc = db.query(SmmboxAccount).filter_by(id=account_id).first()
+        if acc:
+            db.delete(acc)
+            db.commit()
         return {"success": True}
 
     # ─── Tasks ────────────────────────────────────────────────────────────────

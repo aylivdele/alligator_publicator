@@ -204,6 +204,7 @@
   <div class="nav-tab active" data-tab="users">Сотрудники</div>
   <div class="nav-tab" data-tab="folders">Папки</div>
   <div class="nav-tab" data-tab="accounts">Аккаунты</div>
+  <div class="nav-tab" data-tab="smmbox">SMMBox</div>
   <div class="nav-tab" data-tab="tasks">Выкладки</div>
 </nav>
 
@@ -327,6 +328,36 @@
     </div>
   </div>
 
+  <!-- ───── SMMBOX ───── -->
+  <div class="section" id="tab-smmbox">
+    <h2>Аккаунты SMMBox</h2>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+        <span style="font-size:13px;color:var(--muted)">Загрузи актуальный список аккаунтов из SMMBox и привяжи их к папкам</span>
+        <button id="btn-smmbox-sync" onclick="syncSmmbox()">Обновить из SMMBox</button>
+      </div>
+      <div id="smmbox-sync-status" style="margin-top:10px;font-size:12px;display:none"></div>
+    </div>
+
+    <div class="card" style="padding:0">
+      <table>
+        <thead>
+          <tr>
+            <th>Название</th>
+            <th>Соцсеть</th>
+            <th>Тип</th>
+            <th>Папка</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+        <tbody id="smmbox-table-body">
+          <tr><td colspan="5" class="empty-state">Загрузка...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
   <!-- ───── ВЫКЛАДКИ ───── -->
   <div class="section" id="tab-tasks">
     <h2>История выкладок</h2>
@@ -371,6 +402,7 @@ document.querySelectorAll('.nav-tab').forEach(tab => {
     if (tab.dataset.tab === 'tasks') loadTasks();
     if (tab.dataset.tab === 'users') loadUsers();
     if (tab.dataset.tab === 'folders') loadFolders();
+    if (tab.dataset.tab === 'smmbox') loadSmmboxAccounts();
   });
 });
 
@@ -678,6 +710,79 @@ async function deleteAccount(accountId) {
     await api('DELETE', `/admin/api/accounts/${accountId}`);
     showToast('Аккаунт удалён');
     loadAccounts();
+  } catch (err) { showToast(err.message, false); }
+}
+
+// ─── SMMBox accounts ─────────────────────────────────────────────────────────
+const SOCIAL_LABELS = { vk:'ВКонтакте', tg:'Telegram', ok:'Одноклассники', to:'TikTok', fb:'Facebook', gg:'YouTube', ry:'RuTube', tw:'Twitter', pi:'Pinterest', tr:'Tumblr' };
+
+async function syncSmmbox() {
+  const btn = document.getElementById('btn-smmbox-sync');
+  const status = document.getElementById('smmbox-sync-status');
+  btn.disabled = true;
+  btn.textContent = 'Обновляем...';
+  status.style.display = 'none';
+  try {
+    const data = await api('POST', '/admin/api/smmbox-accounts/sync');
+    status.style.display = 'block';
+    status.style.color = 'var(--success)';
+    status.textContent = `Синхронизировано: ${data.synced} аккаунтов`;
+    await loadSmmboxAccounts();
+  } catch (err) {
+    status.style.display = 'block';
+    status.style.color = 'var(--error)';
+    status.textContent = err.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Обновить из SMMBox';
+  }
+}
+
+async function loadSmmboxAccounts() {
+  const accounts = await fetch('/admin/api/smmbox-accounts').then(r => r.json()).catch(() => []);
+  renderSmmboxAccounts(accounts);
+}
+
+function renderSmmboxAccounts(accounts) {
+  const tbody = document.getElementById('smmbox-table-body');
+  if (!accounts.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Нет аккаунтов. Нажми «Обновить из SMMBox»</td></tr>';
+    return;
+  }
+  tbody.innerHTML = accounts.map(a => {
+    const folderOptions = allFolders
+      .map(f => `<option value="${f.id}" ${a.folder_id === f.id ? 'selected' : ''}>${escHtml(f.name)}</option>`)
+      .join('');
+    return `<tr>
+      <td>${escHtml(a.name)}</td>
+      <td><span class="badge badge-processing" style="font-size:11px">${SOCIAL_LABELS[a.social] || a.social}</span></td>
+      <td style="color:var(--muted);font-size:12px">${escHtml(a.type)}</td>
+      <td>
+        <select id="smmbox-folder-${a.id}" onchange="setSmmboxFolder(${a.id})">
+          <option value="">— без папки —</option>
+          ${folderOptions}
+        </select>
+      </td>
+      <td><button class="btn-danger btn-sm" onclick="deleteSmmboxAccount(${a.id})">Удалить</button></td>
+    </tr>`;
+  }).join('');
+}
+
+async function setSmmboxFolder(accountId) {
+  const sel = document.getElementById(`smmbox-folder-${accountId}`);
+  const folderId = sel.value ? parseInt(sel.value) : null;
+  try {
+    await api('PATCH', `/admin/api/smmbox-accounts/${accountId}`, { folder_id: folderId });
+    showToast('Папка обновлена');
+  } catch (err) { showToast(err.message, false); }
+}
+
+async function deleteSmmboxAccount(accountId) {
+  if (!confirm('Удалить аккаунт SMMBox из системы?')) return;
+  try {
+    await api('DELETE', `/admin/api/smmbox-accounts/${accountId}`);
+    showToast('Аккаунт удалён');
+    loadSmmboxAccounts();
   } catch (err) { showToast(err.message, false); }
 }
 
