@@ -21,7 +21,7 @@ async def get_folders(db: Session = Depends(get_db), current_user: User = Depend
         {
             "id": f.id,
             "name": f.name,
-            "count": len(f.instagram_accounts),
+            "count": len(f.instagram_accounts) + len(f.smmbox_accounts),
         }
         for f in folders
     ]

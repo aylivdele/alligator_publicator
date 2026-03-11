@@ -1,9 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.api.deps import require_admin, require_auth
-from app.domain.models import FolderInstagramAccount, InstagramAccount, User, UserRole
+from app.domain.models import Folder, FolderInstagramAccount, FolderSmmboxAccount, InstagramAccount, SmmboxAccount, User, UserRole
 from app.infrastructure.database.db import get_db
 
 
@@ -57,6 +57,21 @@ async def get_accounts(db: Session = Depends(get_db), current_user: User = Depen
             }
             for a in accounts
         ]
+
+
+@router.get("/smmbox-accounts")
+async def get_smmbox_accounts(folder_id: int, db: Session = Depends(get_db), current_user: User = Depends(require_auth)):
+    if current_user.role != UserRole.admin:
+        accessible_ids = {fa.folder_id for fa in current_user.folder_accesses}
+        if folder_id not in accessible_ids:
+            raise HTTPException(status_code=403, detail="Нет доступа к этой папке")
+    accounts = (
+        db.query(SmmboxAccount)
+        .join(FolderSmmboxAccount, SmmboxAccount.id == FolderSmmboxAccount.smmbox_account_id)
+        .filter(FolderSmmboxAccount.folder_id == folder_id)
+        .all()
+    )
+    return [{"id": a.id, "name": a.name, "social": a.social, "type": a.type} for a in accounts]
 
 
 @router.delete("/accounts/{account_id}")

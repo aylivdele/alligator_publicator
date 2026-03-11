@@ -1322,8 +1322,10 @@
   let isAdmin = false;
 
   /* Account modal state */
-  let modalFolderAccounts = [];
-  let selectedAccountIds = new Set();
+  let modalFolderAccounts = [];      // Instagram accounts
+  let modalSmmboxAccounts = [];      // SMMBox accounts
+  let selectedAccountIds = new Set();       // Instagram
+  let selectedSmmboxAccountIds = new Set(); // SMMBox
 
   /* ══════════════════════════════════════
      Utils
@@ -1335,6 +1337,8 @@
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
   }
+
+  const SOCIAL_LABELS = { vk:'ВКонтакте', tg:'Telegram', ok:'Одноклассники', to:'TikTok', fb:'Facebook', gg:'YouTube', ry:'RuTube', tw:'Twitter' };
 
   const FOLDER_ICON = `<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
     <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
@@ -1450,26 +1454,31 @@
       return;
     }
 
-    /* Если аккаунты не загружены (сотрудник) — сразу публикуем без выбора */
     const folderAccounts = allAccounts.filter(a => (a.folder_ids || []).includes(parseInt(folderId)));
-    if (!folderAccounts.length) {
-      doPublish(null);
-      return;
-    }
-
     openAccountModal(parseInt(folderId), folderAccounts);
   }
 
   /* ══════════════════════════════════════
      Модальное окно выбора аккаунтов
   ══════════════════════════════════════ */
-  function openAccountModal(folderId, accounts) {
+  async function openAccountModal(folderId, accounts) {
     modalFolderAccounts = accounts;
-    selectedAccountIds = new Set(); // ничего не выбрано по умолчанию
+    modalSmmboxAccounts = [];
+    selectedAccountIds = new Set();
+    selectedSmmboxAccountIds = new Set();
 
+    document.getElementById('accountModalBackdrop').classList.add('open');
+    document.getElementById('accountModalList').innerHTML =
+      '<div style="color:var(--muted);font-size:13px;text-align:center;padding:16px">Загрузка…</div>';
+
+    try {
+      modalSmmboxAccounts = await fetch(`/api/smmbox-accounts?folder_id=${folderId}`).then(r => r.json());
+    } catch { modalSmmboxAccounts = []; }
+
+    const total = accounts.length + modalSmmboxAccounts.length;
     const folderName = document.getElementById('publishFolderSelect').selectedOptions[0]?.text || '';
     document.getElementById('accountModalSubtitle').textContent =
-      `Папка: ${folderName} · ${accounts.length} акк.`;
+      `Папка: ${folderName} · ${total} акк.`;
 
     const bulkActions = document.getElementById('accountModalBulkActions');
     const sectionLabel = document.getElementById('accountModalSectionLabel');
@@ -1482,7 +1491,6 @@
     }
 
     buildAccountModalList();
-    document.getElementById('accountModalBackdrop').classList.add('open');
   }
 
   function closeAccountModal() {
@@ -1493,51 +1501,89 @@
     const list = document.getElementById('accountModalList');
     const multiCheck = isAdmin ? ' multi' : '';
 
-    list.innerHTML = modalFolderAccounts.map(a => {
+    const igHtml = modalFolderAccounts.map(a => {
       const sel = selectedAccountIds.has(a.id);
       return `
-        <div class="account-option${sel ? ' selected' : ''}" onclick="selectAccount(${a.id})">
+        <div class="account-option${sel ? ' selected' : ''}" onclick="selectIgAccount(${a.id})">
           <div class="account-option-check${multiCheck}"></div>
           <span class="account-option-name">@${escHtml(a.username)}</span>
         </div>`;
     }).join('');
 
+    const smmHtml = modalSmmboxAccounts.map(a => {
+      const sel = selectedSmmboxAccountIds.has(a.id);
+      const label = SOCIAL_LABELS[a.social] || a.social;
+      return `
+        <div class="account-option${sel ? ' selected' : ''}" onclick="selectSmmAccount(${a.id})">
+          <div class="account-option-check${multiCheck}"></div>
+          <span class="account-option-name">${escHtml(a.name)}</span>
+          <span style="font-size:10px;color:var(--muted);margin-left:auto">${escHtml(label)}</span>
+        </div>`;
+    }).join('');
+
+    const divider = (modalFolderAccounts.length && modalSmmboxAccounts.length)
+      ? `<div style="font-size:10px;letter-spacing:.15em;color:var(--muted);margin:12px 0 6px;text-transform:uppercase">SMMBox</div>`
+      : '';
+
+    if (!modalFolderAccounts.length && !modalSmmboxAccounts.length) {
+      list.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:24px 16px">В этой папке нет аккаунтов</div>';
+      document.getElementById('btnConfirmPublish').disabled = false;
+      document.getElementById('btnConfirmPublish').textContent = 'Опубликовать';
+      return;
+    }
+    list.innerHTML = igHtml + divider + smmHtml;
     updateConfirmButton();
   }
 
-  /* Для админа — чекбокс (toggle), для обычного — радио (один аккаунт) */
-  function selectAccount(id) {
+  function selectIgAccount(id) {
     if (isAdmin) {
       if (selectedAccountIds.has(id)) selectedAccountIds.delete(id);
       else selectedAccountIds.add(id);
     } else {
       selectedAccountIds = new Set([id]);
+      selectedSmmboxAccountIds.clear();
+    }
+    buildAccountModalList();
+  }
+
+  function selectSmmAccount(id) {
+    if (isAdmin) {
+      if (selectedSmmboxAccountIds.has(id)) selectedSmmboxAccountIds.delete(id);
+      else selectedSmmboxAccountIds.add(id);
+    } else {
+      selectedSmmboxAccountIds = new Set([id]);
+      selectedAccountIds.clear();
     }
     buildAccountModalList();
   }
 
   function selectAllAccounts() {
     modalFolderAccounts.forEach(a => selectedAccountIds.add(a.id));
+    modalSmmboxAccounts.forEach(a => selectedSmmboxAccountIds.add(a.id));
     buildAccountModalList();
   }
 
   function deselectAllAccounts() {
     selectedAccountIds.clear();
+    selectedSmmboxAccountIds.clear();
     buildAccountModalList();
   }
 
   function updateConfirmButton() {
-    const required = isAdmin ? selectedAccountIds.size >= 1 : selectedAccountIds.size === 1;
+    const total = selectedAccountIds.size + selectedSmmboxAccountIds.size;
+    const required = isAdmin ? total >= 1 : total === 1;
     document.getElementById('btnConfirmPublish').disabled = !required;
   }
 
   function confirmPublish() {
     closeAccountModal();
-    doPublish([...selectedAccountIds]);
+    const igIds = selectedAccountIds.size ? [...selectedAccountIds] : null;
+    const smmIds = selectedSmmboxAccountIds.size ? [...selectedSmmboxAccountIds] : null;
+    doPublish(igIds, smmIds);
   }
 
   /* Фактическая отправка */
-  async function doPublish(accountIds) {
+  async function doPublish(accountIds, smmboxAccountIds) {
     const fileInput = document.getElementById('fileInput');
     const caption = document.getElementById('captionInput').value.trim();
     const folderId = document.getElementById('publishFolderSelect').value;
@@ -1548,8 +1594,11 @@
     formData.append('caption', caption);
     formData.append('selected_folder_id', folderId);
     formData.append('is_test_mode', isTestMode);
-    if (accountIds !== null) {
+    if (accountIds !== null && accountIds !== undefined) {
       formData.append('selected_instagram_account_ids', JSON.stringify(accountIds));
+    }
+    if (smmboxAccountIds && smmboxAccountIds.length) {
+      formData.append('selected_smmbox_account_ids', JSON.stringify(smmboxAccountIds));
     }
 
     const btn = document.getElementById('btnPublish');
@@ -1597,53 +1646,38 @@
     /* Всегда обновляем селект папок в форме публикации */
     buildPublishFolderSelect();
 
-    if (!allAccounts.length) return;
-
-    /* Собираем уникальные папки из аккаунтов через folder_ids */
-    const folderMap = new Map();
-    const folderById = Object.fromEntries(allFolders.map(f => [f.id, f]));
-    allAccounts.forEach(a => {
-      const ids = a.folder_ids && a.folder_ids.length ? a.folder_ids : [null];
-      ids.forEach(fid => {
-        const label = fid !== null ? (folderById[fid]?.name ?? `#${fid}`) : 'Без папки';
-        if (!folderMap.has(fid)) folderMap.set(fid, { id: fid, label, count: 0 });
-        folderMap.get(fid).count++;
-      });
-    });
-
-    /* Показываем панель фильтра только если есть хотя бы 2 разных «категории» */
+    /* Показываем панель фильтра только если есть хотя бы 2 папки */
     const filterBar = document.getElementById('filterBar');
     const filterChips = document.getElementById('filterChips');
 
-    if (folderMap.size < 2) {
+    if (allFolders.length < 2) {
       filterBar.style.display = 'none';
-      /* Если только одна папка — подставляем её в форму автоматически */
-      if (folderMap.size === 1) {
-        const [f] = folderMap.values();
-        if (f.id !== null) document.getElementById('publishFolderSelect').value = String(f.id);
+      if (allFolders.length === 1) {
+        document.getElementById('publishFolderSelect').value = String(allFolders[0].id);
       }
       return;
     }
 
     filterBar.style.display = 'flex';
 
+    const totalCount = allFolders.reduce((s, f) => s + (f.count || 0), 0);
     const allChip = `
       <button class="filter-chip active" id="chip-all" onclick="toggleFilterAll()">
         Все
         <span class="count-badge" style="background:rgba(255,255,255,.25);color:#fff;font-size:10px;height:18px;min-width:18px;padding:0 5px;">
-          ${allAccounts.length}
+          ${totalCount}
         </span>
       </button>`;
 
-    const folderChips = [...folderMap.values()].map(f => `
+    const folderChips = allFolders.map(f => `
       <button
         class="filter-chip"
         id="chip-${f.id}"
-        onclick="toggleFilter(${f.id === null ? 'null' : f.id}, this)"
+        onclick="toggleFilter(${f.id}, this)"
         data-id="${f.id}"
       >
-        ${f.id !== null ? FOLDER_ICON : ''}
-        ${escHtml(f.label)}
+        ${FOLDER_ICON}
+        ${escHtml(f.name)}
         <span style="opacity:.65;margin-left:2px;">${f.count}</span>
       </button>`).join('');
 
