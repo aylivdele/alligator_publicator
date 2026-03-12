@@ -1,4 +1,3 @@
-import json
 import zoneinfo
 from datetime import datetime
 
@@ -35,7 +34,7 @@ class SmmboxApiClient(CombinedPublisher):
 
         posts = [
             {
-                "date": now_ts,
+                "date": now_ts + 60,
                 "group": {
                     "id": group.id,
                     "social": group.social.value,
@@ -61,7 +60,6 @@ class SmmboxApiClient(CombinedPublisher):
         response.raise_for_status()
 
         data = response.json()
-        print(json.dumps(data))
         if not data.get("success") or not data.get("response"):
             raise Exception(f"Could not get user groups: {data}")
 
