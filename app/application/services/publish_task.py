@@ -66,7 +66,7 @@ class PublishVideoTask:
     def _uniqualize_batch(self, caption: str, count: int):
         """Возвращает list[UniqueCaptionResult] длиной count."""
         from app.application.services.caption_uniqualizer import UniqueCaptionResult
-        fallback = [UniqueCaptionResult(caption=caption, youtube_title="")] * count
+        fallback = [UniqueCaptionResult(caption=caption, youtube_title="Без названия")] * count
         if self.caption_uniqualizer and caption:
             try:
                 return self.caption_uniqualizer.uniqualize_batch(caption, count)

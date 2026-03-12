@@ -27,19 +27,13 @@ class SmmboxApiClient(CombinedPublisher):
 
         now_ts = int(datetime.now(zn).timestamp())
 
-        
+        attachments = []
+        if reel.caption:
+            attachments.append({"type": "text", "text": reel.caption})
+        attachments.append({"type": "video", "url": reel.video_url, "title": reel.title})
 
         posts = []
         for group in groups:
-            attachments = []
-            if reel.caption:
-                attachments.append({"type": "text", "text": reel.caption})
-
-            if group.social == SocialType.YOUTUBE:
-                attachments.append({"type": "video", "url": reel.video_url, "title": reel.title, "social": "youtube"})
-            else:
-                attachments.append({"type": "video", "url": reel.video_url, "title": reel.title})
-            
             post: dict = {
                 "date": now_ts + 60,
                 "group": {

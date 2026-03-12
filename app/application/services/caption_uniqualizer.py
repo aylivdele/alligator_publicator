@@ -47,6 +47,9 @@ class CaptionUniqualizerService:
                 messages=[{"role": "user", "content": f"N={count}\n\nТекст:\n{caption}"}],
             )
             raw = response.content[0].text.strip()
+            
+            self.logger.info(f"AI answer: {raw}")
+
             items: list[dict] = json.loads(raw)
             results = [
                 UniqueCaptionResult(
