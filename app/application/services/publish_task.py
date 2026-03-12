@@ -14,8 +14,6 @@ from app.application.services.uniqalize_reel import ReelsUniqalizerService
 from app.domain.entities import GroupType, Reel, SocialType, UserGroup
 from app.domain.models import (
     AccountResultStatus,
-    FolderInstagramAccount,
-    FolderSmmboxAccount,
     InstagramAccount,
     PublishTask,
     SmmboxAccount,
@@ -76,32 +74,10 @@ class PublishVideoTask:
                 self.logger.exception("Caption uniqualization batch failed, using original")
         return fallback
 
-    def _get_instagram_accounts(self, task: PublishTask, db: Session) -> list[InstagramAccount]:
-        """Возвращает Instagram-аккаунты: выбранные вручную или все из папки."""
-        selected = task.selected_instagram_accounts
-        if selected:
-            return selected
-        return (
-            db.query(InstagramAccount)
-            .join(FolderInstagramAccount,
-                  InstagramAccount.id == FolderInstagramAccount.instagram_account_id)
-            .filter(FolderInstagramAccount.folder_id == task.folder_id)
-            .all()
-        )
+    def _get_instagram_accounts(self, task: PublishTask) -> list[InstagramAccount]:
+        return list(task.selected_instagram_accounts)
 
-    def _get_smmbox_accounts(self, task: PublishTask, db: Session) -> list[UserGroup]:
-        """Возвращает SMMBox-группы: выбранные вручную или все из папки."""
-        selected = task.selected_smmbox_accounts
-        if selected:
-            smmbox_db = selected
-        else:
-            smmbox_db = (
-                db.query(SmmboxAccount)
-                .join(FolderSmmboxAccount,
-                      SmmboxAccount.id == FolderSmmboxAccount.smmbox_account_id)
-                .filter(FolderSmmboxAccount.folder_id == task.folder_id)
-                .all()
-            )
+    def _get_smmbox_accounts(self, task: PublishTask) -> list[UserGroup]:
         return [
             UserGroup(
                 id=a.smmbox_id,
@@ -109,7 +85,7 @@ class PublishVideoTask:
                 type=GroupType(a.type),
                 name=a.name,
             )
-            for a in smmbox_db
+            for a in task.selected_smmbox_accounts
         ]
 
     def execute(self, task: PublishTask, db: Session):
@@ -120,11 +96,11 @@ class PublishVideoTask:
             task.status = TaskStatus.processing
             db.commit()
 
-            instagram_accounts = self._get_instagram_accounts(task, db)
+            instagram_accounts = self._get_instagram_accounts(task)
 
             smmbox_groups: list[UserGroup] = []
             if self.smmbox_client and not task.is_test_mode:
-                smmbox_groups = self._get_smmbox_accounts(task, db)
+                smmbox_groups = self._get_smmbox_accounts(task)
 
             publish_groups = self._build_publish_groups(instagram_accounts, smmbox_groups)
 
