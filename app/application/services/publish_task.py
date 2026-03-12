@@ -65,13 +65,16 @@ class PublishVideoTask:
 
         return groups
 
-    def _uniqualize_caption(self, caption: str) -> str:
+    def _uniqualize_batch(self, caption: str, count: int):
+        """Возвращает list[UniqueCaptionResult] длиной count."""
+        from app.application.services.caption_uniqualizer import UniqueCaptionResult
+        fallback = [UniqueCaptionResult(caption=caption, youtube_title="")] * count
         if self.caption_uniqualizer and caption:
             try:
-                return self.caption_uniqualizer.uniqualize(caption)
+                return self.caption_uniqualizer.uniqualize_batch(caption, count)
             except Exception:
-                self.logger.exception("Caption uniqualization failed, using original")
-        return caption
+                self.logger.exception("Caption uniqualization batch failed, using original")
+        return fallback
 
     def _get_instagram_accounts(self, task: PublishTask, db: Session) -> list[InstagramAccount]:
         """Возвращает Instagram-аккаунты: выбранные вручную или все из папки."""
@@ -135,13 +138,14 @@ class PublishVideoTask:
             self.logger.info("Urls of videos in s3: %s", urls)
 
             is_trial = bool(task.is_test_mode)
+            caption_results = self._uniqualize_batch(caption, len(publish_groups))
 
             task.stage = TaskStage.uploading
             db.commit()
 
             for i, (url, group) in enumerate(zip(urls, publish_groups)):
-                unique_caption = self._uniqualize_caption(caption)
-                reel = Reel(url, unique_caption, is_trial=is_trial)
+                cr = caption_results[i]
+                reel = Reel(url, cr.caption, is_trial=is_trial, title=cr.youtube_title or None)
 
                 smmbox_items: list[UserGroup] = []
 

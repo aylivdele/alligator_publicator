@@ -9,6 +9,7 @@ class Reel:
     caption: str
     thumbnail_url: Optional[str] = None
     is_trial: Optional[bool] = False
+    title: Optional[str] = None
 
 class GroupType(Enum):
     USER = 'user'

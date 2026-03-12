@@ -30,10 +30,11 @@ class SmmboxApiClient(CombinedPublisher):
         attachments = []
         if reel.caption:
             attachments.append({"type": "text", "text": reel.caption})
-        attachments.append({"type": "video", "url": reel.video_url})
+        attachments.append({"type": "video", "url": reel.video_url, "title": reel.title})
 
-        posts = [
-            {
+        posts = []
+        for group in groups:
+            post: dict = {
                 "date": now_ts + 60,
                 "group": {
                     "id": group.id,
@@ -43,8 +44,7 @@ class SmmboxApiClient(CombinedPublisher):
                 "attachments": attachments,
                 "options": ["reels"],
             }
-            for group in groups
-        ]
+            posts.append(post)
 
         response = requests.post(url, json={"posts": posts}, headers=self._get_default_headers())
         response.raise_for_status()
