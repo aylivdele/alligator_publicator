@@ -30,7 +30,7 @@ class SmmboxApiClient(CombinedPublisher):
         attachments = []
         if reel.caption:
             attachments.append({"type": "text", "text": reel.caption})
-        attachments.append({"type": "video", "url": reel.video_url, "title": reel.title})
+        attachments.append({"type": "video", "url": reel.video_url, "title": reel.title, "description": reel.caption if reel.caption else None})
 
         posts = []
         for group in groups:
