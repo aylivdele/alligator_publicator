@@ -40,10 +40,11 @@ class InstagramGraphApiClient(InstagramPublisher):
 
     async def update_token(self, current_token: str):
         async with httpx.AsyncClient() as client:
-            long_resp = await client.post(
+            long_resp = await client.get(
                 f"{self.BASE_URL}/access_token",
-                data={
+                params={
                     "grant_type": "ig_exchange_token",
+                    "client_id": self.client_id,
                     "client_secret": self.client_secret,
                     "access_token": current_token
                 }
