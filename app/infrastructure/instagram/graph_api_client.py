@@ -35,7 +35,15 @@ class InstagramGraphApiClient(InstagramPublisher):
             if "access_token" not in short_data:
                 raise Exception(short_data)
 
+            self.logger.info("Short token response: expires_in=%s", short_data.get("expires_in"))
+
             short_token = short_data["access_token"]
+            expires_in = int(short_data.get("expires_in", 0))
+
+            # Новый Instagram Platform (instagram_business_*) уже возвращает long-lived токен
+            if expires_in > 86400:
+                return short_token, expires_in
+
             return await self.update_token(short_token)
 
     async def update_token(self, current_token: str):
