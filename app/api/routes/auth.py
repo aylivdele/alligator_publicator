@@ -123,7 +123,7 @@ def create_auth_routes(graph_api: InstagramGraphApiClient, settings: Optional[co
                 "folder_name": folder_name
             })
         except Exception as e:
-            logging.getLogger(__name__).exception("Auth error", e)
+            logging.getLogger(__name__).exception("Auth error: %s", e)
             return templates.TemplateResponse("result.html", {
                 "request": request,
                 "success": False,
