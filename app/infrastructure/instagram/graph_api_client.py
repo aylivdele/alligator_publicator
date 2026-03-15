@@ -9,9 +9,20 @@ from app.domain.repositories import InstagramPublisher
 
 
 class InstagramGraphApiClient(InstagramPublisher):
+    """
+    Клиент Instagram API через Instagram Login flow.
 
-    BASE_URL = "https://graph.facebook.com/v21.0"
-    IG_BASE_URL = "https://graph.instagram.com"
+    OAuth flow:
+      1. Пользователь авторизуется через instagram.com/oauth/authorize
+         со скоупами instagram_business_*
+      2. code обменивается на short-lived token через api.instagram.com (POST)
+      3. short-lived обменивается на long-lived через graph.instagram.com (GET)
+
+    Публикация и аналитика идут через graph.instagram.com.
+    """
+
+    IG_API_URL = "https://api.instagram.com"
+    GRAPH_URL = "https://graph.instagram.com"
 
     def __init__(self, client_id: str, client_secret: str, redirect_uri: str):
         self.client_id = client_id
@@ -25,19 +36,18 @@ class InstagramGraphApiClient(InstagramPublisher):
 
     async def get_token(self, code: str):
         """
-        Шаг 1: Обмен authorization code на short-lived Facebook User Token.
-        Шаг 2: Обмен short-lived токена на long-lived (60 дней).
-
-        Используется Facebook OAuth endpoint, т.к. Instagram Basic Display API
-        deprecated с декабря 2024.
+        Шаг 1: Обмен authorization code на short-lived token (1 час).
+        Шаг 2: Обмен short-lived на long-lived (60 дней).
         """
         async with httpx.AsyncClient() as client:
-            # Шаг 1: code → short-lived token (через Facebook OAuth)
-            short_resp = await client.get(
-                f"{self.BASE_URL}/oauth/access_token",
-                params={
+            # Шаг 1: code → short-lived token
+            # POST https://api.instagram.com/oauth/access_token
+            short_resp = await client.post(
+                f"{self.IG_API_URL}/oauth/access_token",
+                data={
                     "client_id": self.client_id,
                     "client_secret": self.client_secret,
+                    "grant_type": "authorization_code",
                     "redirect_uri": self.redirect_uri,
                     "code": code,
                 },
@@ -48,48 +58,56 @@ class InstagramGraphApiClient(InstagramPublisher):
                 raise Exception(f"Ошибка получения short-lived токена: {short_data}")
 
             short_token = short_data["access_token"]
+            self.logger.info("Short-lived token получен успешно")
 
             # Шаг 2: short-lived → long-lived
-            return await self.exchange_for_long_lived_token(short_token)
+            return await self.update_token(short_token)
 
-    async def exchange_for_long_lived_token(self, short_token: str):
+    async def update_token(self, current_token: str):
         """
-        Обмен short-lived Facebook User Token (1 час) на long-lived (60 дней).
-        Endpoint: GET /oauth/access_token с grant_type=fb_exchange_token
+        Обмен short-lived token на long-lived (60 дней).
+
+        GET https://graph.instagram.com/access_token
+          ?grant_type=ig_exchange_token
+          &client_secret={app-secret}
+          &access_token={short-lived-token}
+
+        Важно: передаётся client_secret, а НЕ client_id.
+        Документация: https://developers.facebook.com/docs/instagram-platform/reference/access_token/
         """
         async with httpx.AsyncClient() as client:
             long_resp = await client.get(
-                f"{self.BASE_URL}/oauth/access_token",
+                f"{self.GRAPH_URL}/access_token",
                 params={
-                    "grant_type": "fb_exchange_token",
-                    "client_id": self.client_id,
+                    "grant_type": "ig_exchange_token",
                     "client_secret": self.client_secret,
-                    "fb_exchange_token": short_token,
+                    "access_token": current_token,
                 },
             )
             long_data = long_resp.json()
+
+            self.logger.info("Ответ обмена на long-lived токен: %s", long_data)
 
             if "access_token" not in long_data:
                 raise Exception(f"Ошибка обмена на long-lived токен: {long_data}")
 
             return long_data["access_token"], long_data.get("expires_in", 5184000)
 
-    # Обратная совместимость: старое имя метода
-    update_token = exchange_for_long_lived_token
-
     async def refresh_long_lived_token(self, long_token: str):
         """
-        Обновление long-lived токена (продление ещё на 60 дней).
-        Можно вызывать, пока токен ещё валиден.
+        Обновление long-lived токена (продление на 60 дней).
+        Можно вызывать, когда токену больше 24 часов, но он ещё не истёк.
+
+        GET https://graph.instagram.com/refresh_access_token
+          ?grant_type=ig_refresh_token
+          &access_token={long-lived-token}
         """
         async with httpx.AsyncClient() as client:
             resp = await client.get(
-                f"{self.BASE_URL}/oauth/access_token",
+                f"{self.GRAPH_URL}/refresh_access_token",
                 params={
-                    "grant_type": "fb_exchange_token",
-                    "client_id": self.client_id,
-                    "client_secret": self.client_secret,
-                    "fb_exchange_token": long_token,
+                    "grant_type": "ig_refresh_token",
+                    "access_token": long_token,
                 },
             )
             data = resp.json()
@@ -105,47 +123,18 @@ class InstagramGraphApiClient(InstagramPublisher):
 
     async def get_account_info(self, long_token: str):
         """
-        Получение Instagram Business Account ID через Facebook Pages.
-        Цепочка: User Token → Pages → Instagram Business Account.
+        Получение информации об Instagram аккаунте.
+        GET https://graph.instagram.com/me
         """
         async with httpx.AsyncClient() as client:
-            # Получаем список страниц пользователя
-            pages_resp = await client.get(
-                f"{self.BASE_URL}/me/accounts",
+            me_resp = await client.get(
+                f"{self.GRAPH_URL}/me",
                 params={
-                    "fields": "id,name,access_token,instagram_business_account",
+                    "fields": "id,username",
                     "access_token": long_token,
                 },
             )
-            pages_data = pages_resp.json()
-
-            if "data" not in pages_data:
-                raise Exception(f"Ошибка получения страниц: {pages_data}")
-
-            # Ищем страницу с привязанным Instagram Business аккаунтом
-            for page in pages_data["data"]:
-                ig_account = page.get("instagram_business_account")
-                if ig_account:
-                    ig_id = ig_account["id"]
-
-                    # Получаем username Instagram аккаунта
-                    ig_resp = await client.get(
-                        f"{self.BASE_URL}/{ig_id}",
-                        params={
-                            "fields": "id,username,profile_picture_url,name",
-                            "access_token": long_token,
-                        },
-                    )
-                    ig_data = ig_resp.json()
-                    ig_data["page_access_token"] = page.get("access_token")
-                    ig_data["page_id"] = page["id"]
-                    ig_data["page_name"] = page.get("name")
-                    return ig_data
-
-            raise Exception(
-                "Не найден Instagram Business аккаунт. "
-                "Убедитесь, что к Facebook-странице привязан Instagram Professional аккаунт."
-            )
+            return me_resp.json()
 
     # ──────────────────────────────────────────────
     #  Аналитика: просмотры и ссылки
@@ -154,7 +143,7 @@ class InstagramGraphApiClient(InstagramPublisher):
     async def get_reel_views(self, media_id: str, access_token: str) -> Optional[int]:
         async with httpx.AsyncClient() as client:
             resp = await client.get(
-                f"{self.BASE_URL}/{media_id}/insights",
+                f"{self.GRAPH_URL}/{media_id}/insights",
                 params={
                     "metric": "views",
                     "period": "lifetime",
@@ -182,7 +171,7 @@ class InstagramGraphApiClient(InstagramPublisher):
         try:
             async with httpx.AsyncClient() as client:
                 resp = await client.get(
-                    f"{self.BASE_URL}/{media_id}",
+                    f"{self.GRAPH_URL}/{media_id}",
                     params={
                         "fields": "permalink",
                         "access_token": access_token,
@@ -202,7 +191,7 @@ class InstagramGraphApiClient(InstagramPublisher):
         return await self._publish_media(creation_id, account)
 
     async def _create_media_container(self, reel: Reel, account: InstagramAccount) -> str:
-        url = f"{self.BASE_URL}/{account.instagram_id}/media"
+        url = f"{self.GRAPH_URL}/{account.instagram_id}/media"
 
         payload = {
             "media_type": "REELS",
@@ -222,7 +211,7 @@ class InstagramGraphApiClient(InstagramPublisher):
             return response.json()["id"]
 
     async def _wait_for_container(self, creation_id: str, account: InstagramAccount):
-        url = f"{self.BASE_URL}/{creation_id}"
+        url = f"{self.GRAPH_URL}/{creation_id}"
         params = {
             "fields": "status_code,status",
             "access_token": account.access_token,
@@ -252,10 +241,10 @@ class InstagramGraphApiClient(InstagramPublisher):
                     status_code,
                 )
                 await asyncio.sleep(sleep_seconds)
-                sleep_seconds = min(sleep_seconds * 2, 120)  # cap at 2 min
+                sleep_seconds = min(sleep_seconds * 2, 120)
 
     async def _publish_media(self, creation_id: str, account: InstagramAccount) -> str:
-        url = f"{self.BASE_URL}/{account.instagram_id}/media_publish"
+        url = f"{self.GRAPH_URL}/{account.instagram_id}/media_publish"
 
         payload = {
             "creation_id": creation_id,

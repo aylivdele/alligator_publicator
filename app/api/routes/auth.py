@@ -27,7 +27,7 @@ def create_auth_routes(graph_api: InstagramGraphApiClient, settings: Optional[co
     def get_auth_url(folder_id: Optional[int] = None):
         state = str(folder_id) if folder_id else "0"
         return (
-            f"https://www.instagram.com/oauth/authorize?force_reauth=true&client_id=1981989866068427&redirect_uri=https://alligator.meta-box.ru/auth&response_type=code&scope=instagram_business_basic%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights&state={state}"
+            f"https://www.instagram.com/oauth/authorize?force_reauth=true&client_id={settings.GRAPH_API_CLIENT_ID}&redirect_uri=https://alligator.meta-box.ru/auth&response_type=code&scope=instagram_business_basic%2Cinstagram_business_content_publish%2Cinstagram_business_manage_insights&state={state}"
         )
 
     @router.get("/", response_class=HTMLResponse)
@@ -123,7 +123,7 @@ def create_auth_routes(graph_api: InstagramGraphApiClient, settings: Optional[co
                 "folder_name": folder_name
             })
         except Exception as e:
-            logging.getLogger(__name__).exception("Auth error: %s", e)
+            logging.getLogger(__name__).exception("Auth error", e)
             return templates.TemplateResponse("result.html", {
                 "request": request,
                 "success": False,
