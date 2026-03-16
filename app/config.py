@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     GRAPH_API_CLIENT_SECRET: str
     GRAPH_API_REDIRECT_URI: str
 
+    DOMAIN_NAME: str
+
     STORAGE_ENDPOINT: str
     STORAGE_ACCESS_KEY: str
     STORAGE_SECRET_KEY: str
