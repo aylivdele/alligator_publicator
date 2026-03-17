@@ -293,8 +293,8 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
         except Exception as e:
             raise HTTPException(status_code=502, detail=f"Ошибка запроса к SMMBox: {e}")
 
-        non_ig = [g for g in all_groups if g.social != SocialType.INSTAGRAM]
-        for g in non_ig:
+        # non_ig = [g for g in all_groups if g.social != SocialType.INSTAGRAM]
+        for g in all_groups:
             existing = db.query(SmmboxAccount).filter_by(smmbox_id=g.id).first()
             if existing:
                 existing.name = g.name
