@@ -35,7 +35,7 @@ class SmmboxApiClient(CombinedPublisher):
         posts = []
         for group in groups:
             post: dict = {
-                "date": now_ts + 60,
+                "date": now_ts + 120,
                 "group": {
                     "id": group.id,
                     "social": group.social.value,
