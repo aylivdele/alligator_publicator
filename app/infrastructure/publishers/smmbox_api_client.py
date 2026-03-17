@@ -22,10 +22,8 @@ class SmmboxApiClient(CombinedPublisher):
             "Authorization": f"Bearer {self.api_key}"
         }
 
-    def publish_reel(self, reel: Reel, groups: list[UserGroup]):
+    def publish_reel(self, reel: Reel, groups: list[UserGroup], date: int = int(datetime.now(zn).timestamp())):
         url = f"{self.BASE_URL}/posts/postpone"
-
-        now_ts = int(datetime.now(zn).timestamp())
 
         attachments = []
         if reel.caption:
@@ -35,7 +33,7 @@ class SmmboxApiClient(CombinedPublisher):
         posts = []
         for group in groups:
             post: dict = {
-                "date": now_ts + 120,
+                "date": date,
                 "group": {
                     "id": group.id,
                     "social": group.social.value,

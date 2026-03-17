@@ -119,50 +119,68 @@ class PublishVideoTask:
             task.stage = TaskStage.uploading
             db.commit()
 
+            # Базовое время для SMMBox-расписания: текущий момент + минимальный offset
+            SMMBOX_MIN_OFFSET = 90   # секунд, чтобы не попасть в "past date"
+            SMMBOX_SLOT_DELAY = 90   # секунд между слотами одной соцсети в SMMBox
+            publish_start_ts = int(time.time())
+
+            last_ig_group_idx = -1  # индекс последней группы, где был native Instagram
+
             for i, (url, group) in enumerate(zip(urls, publish_groups)):
                 cr = caption_results[i]
                 reel = Reel(url, cr.caption, is_trial=is_trial, title=cr.youtube_title or None)
 
-                smmbox_items: list[UserGroup] = []
+                ig_items  = [(s, it) for s, it in group if s == 'instagram']
+                smmbox_items: list[UserGroup] = [it for s, it in group if s == 'smmbox']
 
-                for (source, item) in group:
-                    if source == 'instagram':
-                        account: InstagramAccount = item
-                        try:
-                            media_id = asyncio.run(self.instagram_publisher.publish_reel(reel, account))
-                            result = TaskInstagramResult(
-                                task_id=task.id,
-                                instagram_account_id=account.id,
-                                status=AccountResultStatus.success,
-                                media_id=media_id,
-                            )
-                        except Exception as e:
-                            self.logger.exception(
-                                "Instagram publish failed for account %s", account.instagram_id, exc_info=e
-                            )
-                            result = TaskInstagramResult(
-                                task_id=task.id,
-                                instagram_account_id=account.id,
-                                status=AccountResultStatus.failed,
-                                error=str(e),
-                            )
-                        db.add(result)
-                        db.commit()
+                # Задержка перед native Instagram — только между постами одного типа
+                if ig_items and last_ig_group_idx >= 0:
+                    delay = random.randint(60, 120)
+                    self.logger.info("Sleeping %ds before Instagram group %d", delay, i)
+                    time.sleep(delay)
 
-                    elif source == 'smmbox':
-                        smmbox_items.append(item)
+                for (_, item) in ig_items:
+                    account: InstagramAccount = item
+                    try:
+                        media_id = asyncio.run(self.instagram_publisher.publish_reel(reel, account))
+                        result = TaskInstagramResult(
+                            task_id=task.id,
+                            instagram_account_id=account.id,
+                            status=AccountResultStatus.success,
+                            media_id=media_id,
+                        )
+                    except Exception as e:
+                        self.logger.exception(
+                            "Instagram publish failed for account %s", account.instagram_id, exc_info=e
+                        )
+                        result = TaskInstagramResult(
+                            task_id=task.id,
+                            instagram_account_id=account.id,
+                            status=AccountResultStatus.failed,
+                            error=str(e),
+                        )
+                    db.add(result)
+                    db.commit()
 
+                if ig_items:
+                    last_ig_group_idx = i
+
+                # SMMBox: задержка через параметр date, sleep не нужен
+                # Каждый слот i запланирован на now + offset + i * slot_delay
                 if smmbox_items and self.smmbox_client:
-                    # Получаем SmmboxAccount из БД по smmbox_id для записи результатов
-                    smmbox_id_to_db: dict[str, SmmboxAccount] = {}
-                    for grp in smmbox_items:
-                        db_acc = db.query(SmmboxAccount).filter_by(smmbox_id=grp.id).first()
-                        if db_acc:
-                            smmbox_id_to_db[grp.id] = db_acc
+                    smmbox_date = publish_start_ts + SMMBOX_MIN_OFFSET + i * SMMBOX_SLOT_DELAY
+                    smmbox_id_to_db: dict[str, SmmboxAccount] = {
+                        grp.id: db.query(SmmboxAccount).filter_by(smmbox_id=grp.id).first()
+                        for grp in smmbox_items
+                    }
+                    smmbox_id_to_db = {k: v for k, v in smmbox_id_to_db.items() if v}
 
                     try:
-                        self.smmbox_client.publish_reel(reel, smmbox_items)
-                        self.logger.info("SMMBox publish OK for groups: %s", [g.id for g in smmbox_items])
+                        self.smmbox_client.publish_reel(reel, smmbox_items, date=smmbox_date)
+                        self.logger.info(
+                            "SMMBox publish scheduled at %s for groups: %s",
+                            smmbox_date, [g.id for g in smmbox_items]
+                        )
                         for grp in smmbox_items:
                             db_acc = smmbox_id_to_db.get(grp.id)
                             db.add(TaskSmmboxResult(
@@ -183,11 +201,6 @@ class PublishVideoTask:
                                 error=str(e),
                             ))
                     db.commit()
-
-                if i < len(publish_groups) - 1:
-                    delay = random.randint(60, 120)
-                    self.logger.info("Sleeping %ds before next group", delay)
-                    time.sleep(delay)
 
             task.status = TaskStatus.completed
             task.stage = TaskStage.done
