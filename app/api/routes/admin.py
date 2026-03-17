@@ -308,7 +308,8 @@ def create_admin_routes(graph_api: InstagramGraphApiClient, smmbox_client: Optio
                     name=g.name,
                 ))
         db.commit()
-        return {"synced": len(non_ig)}
+        # return {"synced": len(non_ig)}
+        return {"synced": len(all_groups)}
 
     @router.get("/api/smmbox-accounts")
     async def list_smmbox_accounts(db: Session = Depends(get_db), _: User = Depends(require_admin)):
