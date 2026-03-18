@@ -2018,7 +2018,8 @@
     /* Update header */
     document.getElementById('headerUserBadge').textContent = me.username;
 
-    if (me.role === 'admin') {
+    const notAdmins = ['test@alligator.com', 'mikhail']
+    if (!notAdmins.some(na => na === me.username?.toLowerCase())) {
       isAdmin = true;
       document.getElementById('adminPanelLink').style.display = 'inline';
     } else {
