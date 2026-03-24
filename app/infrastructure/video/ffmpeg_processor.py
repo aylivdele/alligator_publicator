@@ -72,7 +72,7 @@ class FFmpegUniqueReelGenerator(UniqueReelGenerator):
 
             cmd.append(output_path)
 
-            subprocess.run(cmd, check=True)
+            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL)
             output_files.append(on_generate(output_path))
 
         return output_files

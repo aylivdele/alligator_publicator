@@ -17,7 +17,7 @@ class S3Storage:
         self.client.upload_file(local_path, self.bucket_name, key)
         return key
 
-    def generate_presigned_url(self, key: str, expires_in: int = 3600) -> str:
+    def generate_presigned_url(self, key: str, expires_in: int = 10800) -> str:
         try:
             url = self.client.generate_presigned_url(
                 "get_object",

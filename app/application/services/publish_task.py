@@ -178,8 +178,8 @@ class PublishVideoTask:
                     try:
                         self.smmbox_client.publish_reel(reel, smmbox_items, date=smmbox_date)
                         self.logger.info(
-                            "SMMBox publish scheduled at %s for groups: %s",
-                            smmbox_date, [g.id for g in smmbox_items]
+                            "SMMBox publish scheduled at %s for username %s: %s",
+                            smmbox_date, [g.name for g in smmbox_items], reel.video_url
                         )
                         for grp in smmbox_items:
                             db_acc = smmbox_id_to_db.get(grp.id)
